@@ -28,7 +28,7 @@ import time
 import uuid
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -51,7 +51,7 @@ from server.schemas import ChatRequest, ChatResponse, EscalationReason, SourceRe
 
 log = get_logger(__name__)
 
-__all__ = ["PromptBuilder", "ChatService", "ChatOutcome"]
+__all__ = ["ChatOutcome", "ChatService", "PromptBuilder"]
 
 _SECTION_RE = re.compile(r"^#\s*\[([A-Z /-]+)\]\s*$", re.MULTILINE)
 _HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
@@ -163,7 +163,7 @@ class PromptBuilder:
             .replace("{{retrieved_context}}", retrieved_context or "")
             .replace("{{user_message}}", user_message)
             .replace("{{detected_product}}", detected_product or "មិនទាន់ដឹង")
-            .replace("{{today}}", datetime.now(timezone.utc).date().isoformat())
+            .replace("{{today}}", datetime.now(UTC).date().isoformat())
         )
         return self._drop_empty_sections(filled)
 
@@ -215,7 +215,9 @@ class PromptBuilder:
 
         system = self.system_prompt(language)
         if escalation is not EscalationReason.NONE:
-            system = f"{system}\n\n{self.escalation_block(escalation, conversation.unresolved_question)}"
+            system = (
+                f"{system}\n\n{self.escalation_block(escalation, conversation.unresolved_question)}"
+            )
 
         # --- context budget --------------------------------------------------
         # The window is a hard limit. If the assembled prompt exceeds it, the
@@ -229,11 +231,17 @@ class PromptBuilder:
         budget_for_turn = available - system_tokens
 
         message_text = user_message
-        chunk_count = len(retrieval.chunks) if retrieval is not None and not retrieval.is_empty else 0
+        chunk_count = (
+            len(retrieval.chunks) if retrieval is not None and not retrieval.is_empty else 0
+        )
 
         def _render(text: str, chunks_kept: int) -> str:
             block = context_block
-            if retrieval is not None and not retrieval.is_empty and chunks_kept < len(retrieval.chunks):
+            if (
+                retrieval is not None
+                and not retrieval.is_empty
+                and chunks_kept < len(retrieval.chunks)
+            ):
                 trimmed = retrieval.model_copy(update={"chunks": retrieval.chunks[:chunks_kept]})
                 block, _ = build_context_block(trimmed) if chunks_kept else ("", [])
             return self.answer_block(
@@ -272,7 +280,11 @@ class PromptBuilder:
                     break
                 keep = max(
                     _MIN_KEPT_MESSAGE_CHARS,
-                    int(len(message_text) * (1.0 - min(0.9, overshoot / max(1, estimate_tokens(user_block)))) * 0.9),
+                    int(
+                        len(message_text)
+                        * (1.0 - min(0.9, overshoot / max(1, estimate_tokens(user_block))))
+                        * 0.9
+                    ),
                 )
                 if keep >= len(message_text):
                     keep = int(len(message_text) * 0.8)
@@ -295,7 +307,11 @@ class PromptBuilder:
             max_turns=settings.conversation_max_turns, token_budget=max(0, history_budget)
         )
 
-        messages = [{"role": "system", "content": system}, *history, {"role": "user", "content": user_block}]
+        messages = [
+            {"role": "system", "content": system},
+            *history,
+            {"role": "user", "content": user_block},
+        ]
         return messages, sources
 
 
@@ -375,11 +391,7 @@ class ChatService:
             return EscalationReason.REPEATED_FAILURE
         if retrieval is not None and retrieval.has_conflict:
             return EscalationReason.CONFLICTING_SOURCES
-        if (
-            verdict.requires_grounding
-            and retrieval is not None
-            and retrieval.is_empty
-        ):
+        if verdict.requires_grounding and retrieval is not None and retrieval.is_empty:
             return EscalationReason.NO_INFORMATION
         return EscalationReason.NONE
 
@@ -408,9 +420,7 @@ class ChatService:
         if not checked.allowed:
             sources = []
             escalation = (
-                checked.escalate
-                if checked.escalate is not EscalationReason.NONE
-                else escalation
+                checked.escalate if checked.escalate is not EscalationReason.NONE else escalation
             )
 
         confidence = retrieval.confidence_score if retrieval else 0.0
@@ -452,8 +462,7 @@ class ChatService:
                 f"សារវែងពេក។ សូមសរសេរឱ្យខ្លីជាងនេះ (មិនលើសពី {self.settings.max_message_chars} តួអក្សរ)។"
             ),
             "prompt_injection": (
-                "ខ្ញុំមិនអាចធ្វើតាមសំណើនោះបានទេ ប៉ុន្តែខ្ញុំរីករាយជួយឆ្លើយសំណួរ"
-                "អំពីផលិតផល សេវាកម្ម ការធានា និងតម្លៃរបស់យើង។"
+                "ខ្ញុំមិនអាចធ្វើតាមសំណើនោះបានទេ ប៉ុន្តែខ្ញុំរីករាយជួយឆ្លើយសំណួរអំពីផលិតផល សេវាកម្ម ការធានា និងតម្លៃរបស់យើង។"
             ),
         }
         answer = messages.get(verdict.reason, messages["empty_message"])
@@ -513,16 +522,12 @@ class ChatService:
         conversation, verdict, conversation_id = self._prepare(request)
         language = self._language_for(request, verdict)
 
-        yield StreamEvent(
-            type="start", conversation_id=conversation_id, request_id=request_id
-        )
+        yield StreamEvent(type="start", conversation_id=conversation_id, request_id=request_id)
 
         if not verdict.allowed:
             log.warning("chat.input_blocked", extra=verdict.to_log())
             outcome = self._refusal(conversation, verdict, language)
-            yield StreamEvent(
-                type="token", conversation_id=conversation_id, content=outcome.answer
-            )
+            yield StreamEvent(type="token", conversation_id=conversation_id, content=outcome.answer)
             yield StreamEvent(
                 type="done",
                 conversation_id=conversation_id,
@@ -588,11 +593,7 @@ class ChatService:
             language=language,
             escalation=escalation,
             model=str(metrics.get("model", self.settings.ollama_model)),
-            usage={
-                k: v
-                for k, v in metrics.items()
-                if k not in ("model", "done_reason")
-            }
+            usage={k: v for k, v in metrics.items() if k not in ("model", "done_reason")}
             or {"total_duration_ms": round((time.perf_counter() - started) * 1000, 1)},
         )
 
@@ -621,7 +622,9 @@ class ChatService:
         lowered = answer.lower()
         return any(marker in answer or marker in lowered for marker in _UNKNOWN_MARKERS)
 
-    def to_response(self, outcome: ChatOutcome, *, request_id: str, versions: dict[str, str]) -> ChatResponse:
+    def to_response(
+        self, outcome: ChatOutcome, *, request_id: str, versions: dict[str, str]
+    ) -> ChatResponse:
         return ChatResponse(
             conversation_id=outcome.conversation_id,
             answer=outcome.answer,

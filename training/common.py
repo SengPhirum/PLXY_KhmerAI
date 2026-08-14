@@ -30,15 +30,15 @@ from common.versions import git_commit
 log = get_logger(__name__)
 
 __all__ = [
-    "TrainingConfig",
-    "MemoryProfile",
     "MEMORY_PROFILES",
-    "set_seed",
-    "detect_hardware",
-    "build_run_manifest",
-    "resolve_memory_profile",
+    "MemoryProfile",
+    "TrainingConfig",
     "assert_upload_approved",
+    "build_run_manifest",
+    "detect_hardware",
     "find_target_modules",
+    "resolve_memory_profile",
+    "set_seed",
 ]
 
 
@@ -67,27 +67,59 @@ class MemoryProfile:
 
 MEMORY_PROFILES: dict[str, MemoryProfile] = {
     "16gb": MemoryProfile(
-        name="16gb", vram_gb=16, load_in_4bit=True, per_device_batch_size=1,
-        gradient_accumulation_steps=16, max_seq_length=2048, gradient_checkpointing=True,
-        lora_rank=32, lora_alpha=64, bf16=False, packing=True,
+        name="16gb",
+        vram_gb=16,
+        load_in_4bit=True,
+        per_device_batch_size=1,
+        gradient_accumulation_steps=16,
+        max_seq_length=2048,
+        gradient_checkpointing=True,
+        lora_rank=32,
+        lora_alpha=64,
+        bf16=False,
+        packing=True,
         notes="T4/V100 class. fp16 compute; 4-bit base weights are mandatory.",
     ),
     "24gb": MemoryProfile(
-        name="24gb", vram_gb=24, load_in_4bit=True, per_device_batch_size=2,
-        gradient_accumulation_steps=8, max_seq_length=3072, gradient_checkpointing=True,
-        lora_rank=32, lora_alpha=64, bf16=True, packing=True,
+        name="24gb",
+        vram_gb=24,
+        load_in_4bit=True,
+        per_device_batch_size=2,
+        gradient_accumulation_steps=8,
+        max_seq_length=3072,
+        gradient_checkpointing=True,
+        lora_rank=32,
+        lora_alpha=64,
+        bf16=True,
+        packing=True,
         notes="L4/A10/3090 class. Comfortable for the 4B, tight for the 9B.",
     ),
     "40gb": MemoryProfile(
-        name="40gb", vram_gb=40, load_in_4bit=True, per_device_batch_size=4,
-        gradient_accumulation_steps=4, max_seq_length=4096, gradient_checkpointing=True,
-        lora_rank=64, lora_alpha=128, bf16=True, packing=True,
+        name="40gb",
+        vram_gb=40,
+        load_in_4bit=True,
+        per_device_batch_size=4,
+        gradient_accumulation_steps=4,
+        max_seq_length=4096,
+        gradient_checkpointing=True,
+        lora_rank=64,
+        lora_alpha=128,
+        bf16=True,
+        packing=True,
         notes="A100 40GB. The recommended profile for the 9B SFT run.",
     ),
     "80gb": MemoryProfile(
-        name="80gb", vram_gb=80, load_in_4bit=False, per_device_batch_size=8,
-        gradient_accumulation_steps=2, max_seq_length=4096, gradient_checkpointing=False,
-        lora_rank=64, lora_alpha=128, bf16=True, packing=True,
+        name="80gb",
+        vram_gb=80,
+        load_in_4bit=False,
+        per_device_batch_size=8,
+        gradient_accumulation_steps=2,
+        max_seq_length=4096,
+        gradient_checkpointing=False,
+        lora_rank=64,
+        lora_alpha=128,
+        bf16=True,
+        packing=True,
         notes="A100/H100 80GB. LoRA on bf16 weights; no quantisation needed.",
     ),
 }
@@ -141,7 +173,9 @@ class TrainingConfig:
     extra: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_yaml(cls, path: str | Path, *, overrides: dict[str, Any] | None = None) -> TrainingConfig:
+    def from_yaml(
+        cls, path: str | Path, *, overrides: dict[str, Any] | None = None
+    ) -> TrainingConfig:
         raw = load_config(path, overrides=overrides)
         section = raw.get("training", raw)
         known = {f for f in cls.__dataclass_fields__ if f != "extra"}
@@ -191,13 +225,13 @@ def set_seed(seed: int, *, deterministic: bool = True) -> None:
     random.seed(seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
     try:
-        import numpy as np  # noqa: PLC0415
+        import numpy as np
 
-        np.random.seed(seed)  # noqa: NPY002 - global seeding is the intent here
+        np.random.seed(seed)
     except ImportError:
         pass
     try:
-        import torch  # noqa: PLC0415
+        import torch
 
         torch.manual_seed(seed)
         if torch.cuda.is_available():
@@ -220,7 +254,7 @@ def detect_hardware() -> dict[str, Any]:
         "cpu_count": os.cpu_count(),
     }
     try:
-        import torch  # noqa: PLC0415
+        import torch
 
         info["torch"] = torch.__version__
         info["cuda_available"] = torch.cuda.is_available()
@@ -235,7 +269,9 @@ def detect_hardware() -> dict[str, Any]:
                 }
                 for i in range(torch.cuda.device_count())
             ]
-        info["mps_available"] = bool(getattr(torch.backends, "mps", None) and torch.backends.mps.is_available())
+        info["mps_available"] = bool(
+            getattr(torch.backends, "mps", None) and torch.backends.mps.is_available()
+        )
     except ImportError:
         info["torch"] = None
     return info
@@ -288,13 +324,13 @@ def build_run_manifest(
 
 def _preprocessing_version() -> str:
     """Fingerprint the preprocessing rules that produced the training data."""
-    from preprocessing.unicode_normalization import NormalizationConfig  # noqa: PLC0415
+    from preprocessing.unicode_normalization import NormalizationConfig
 
     return sha256_text(json.dumps(asdict(NormalizationConfig()), sort_keys=True))[:12]
 
 
 def _installed_versions(packages: list[str]) -> dict[str, str]:
-    from importlib.metadata import PackageNotFoundError, version  # noqa: PLC0415
+    from importlib.metadata import PackageNotFoundError, version
 
     out: dict[str, str] = {}
     for package in packages:
@@ -329,7 +365,7 @@ def assert_upload_approved(
     if not target.is_file():
         raise RuntimeError(
             f"no pre-upload scan at {target}. Generate one before cloud training:\n"
-            "    python -c \"from preprocessing.pii_filter import build_pre_upload_report; "
+            '    python -c "from preprocessing.pii_filter import build_pre_upload_report; '
             "from common.io import write_json; "
             "write_json('data/manifests/pre_upload_report.json', "
             "build_pre_upload_report(['data/sft/train.jsonl']))\""
@@ -356,11 +392,19 @@ def find_target_modules(
     module tree.  Vision/audio towers are excluded because this is a text-only
     project and adapting them wastes parameters and memory.
     """
-    import torch.nn as nn  # noqa: PLC0415
+    import torch.nn as nn
 
     attention_hints = ("q_proj", "k_proj", "v_proj", "o_proj", "qkv_proj", "out_proj", "wqkv")
     mlp_hints = ("gate_proj", "up_proj", "down_proj", "w1", "w2", "w3", "fc1", "fc2")
-    multimodal_hints = ("vision", "visual", "image", "audio", "speech", "mm_projector", "patch_embed")
+    multimodal_hints = (
+        "vision",
+        "visual",
+        "image",
+        "audio",
+        "speech",
+        "mm_projector",
+        "patch_embed",
+    )
 
     found: set[str] = set()
     for name, module in model.named_modules():

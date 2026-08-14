@@ -54,7 +54,7 @@ def _read_text(path: str) -> str:
     """
     raw = open(path, "rb").read()  # noqa: SIM115, PTH123 - explicit binary read
     try:
-        from charset_normalizer import from_bytes  # noqa: PLC0415 - optional
+        from charset_normalizer import from_bytes
 
         best = from_bytes(raw).best()
         if best is not None:

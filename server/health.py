@@ -22,7 +22,7 @@ from server.schemas import ComponentHealth, HealthResponse, ReadyResponse
 
 log = get_logger(__name__)
 
-__all__ = ["liveness", "readiness", "host_stats"]
+__all__ = ["host_stats", "liveness", "readiness"]
 
 
 def liveness(state: AppState) -> HealthResponse:
@@ -119,7 +119,7 @@ def host_stats(index_root: Path | None = None) -> dict[str, Any]:
     """Host telemetry for the operations runbook; degrades if psutil is absent."""
     stats: dict[str, Any] = {}
     try:
-        import psutil  # noqa: PLC0415 - optional dependency
+        import psutil
 
         memory = psutil.virtual_memory()
         stats.update(
@@ -144,7 +144,9 @@ def host_stats(index_root: Path | None = None) -> dict[str, Any]:
     return stats
 
 
-async def wait_until_ready(state: AppState, *, timeout: float = 60.0, interval: float = 2.0) -> bool:
+async def wait_until_ready(
+    state: AppState, *, timeout: float = 60.0, interval: float = 2.0
+) -> bool:
     """Poll readiness - used by ``scripts/smoke_test.sh`` and the installer."""
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:

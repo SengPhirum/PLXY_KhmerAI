@@ -18,7 +18,7 @@ from company_data.loaders.pdf_loader import load_pdf
 from company_data.loaders.text_loader import load_text
 from company_data.loaders.xlsx_loader import load_xlsx
 
-__all__ = ["SUPPORTED_EXTENSIONS", "loader_for", "load_any", "load_directory", "iter_documents"]
+__all__ = ["SUPPORTED_EXTENSIONS", "iter_documents", "load_any", "load_directory", "loader_for"]
 
 Loader = Callable[..., list[LoadedDocument]]
 
@@ -105,7 +105,7 @@ def load_directory(
     for path in iter_documents(root, recursive=recursive, allowed_extensions=allowed_extensions):
         try:
             documents.extend(load_any(path))
-        except Exception as exc:  # noqa: BLE001 - deliberately broad, reported not raised
+        except Exception as exc:
             if on_error is None:
                 raise
             on_error(path, exc)

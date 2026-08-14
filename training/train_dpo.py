@@ -30,7 +30,7 @@ from training.dataset_loader import load_preference_pairs
 
 log = get_logger(__name__)
 
-__all__ = ["main", "run_dpo", "should_accept_dpo", "audit_pairs"]
+__all__ = ["audit_pairs", "main", "run_dpo", "should_accept_dpo"]
 
 # A DPO checkpoint is kept only if it wins on quality without regressing safety.
 ACCEPTANCE = {
@@ -44,8 +44,8 @@ ACCEPTANCE = {
 
 def audit_pairs(pairs: list[dict[str, str]]) -> dict[str, Any]:
     """Quality audit of the preference set before spending GPU time on it."""
-    from preprocessing.khmer_detection import TextLanguage, detect_language  # noqa: PLC0415
-    from preprocessing.unicode_normalization import normalize_for_hashing  # noqa: PLC0415
+    from preprocessing.khmer_detection import TextLanguage, detect_language
+    from preprocessing.unicode_normalization import normalize_for_hashing
 
     identical = 0
     non_khmer = 0
@@ -109,11 +109,16 @@ def should_accept_dpo(sft: dict[str, float], dpo: dict[str, float]) -> tuple[boo
 
 def run_dpo(config: TrainingConfig, *, sft_adapter: str | None = None) -> dict[str, Any]:
     """Execute DPO on top of the SFT adapter."""
-    import torch  # noqa: PLC0415
-    from datasets import Dataset  # noqa: PLC0415
-    from peft import LoraConfig, PeftModel  # noqa: PLC0415
-    from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig  # noqa: PLC0415
-    from trl import DPOConfig, DPOTrainer  # noqa: PLC0415
+    import torch
+    from peft import LoraConfig, PeftModel
+    from transformers import (
+        AutoModelForCausalLM,
+        AutoTokenizer,
+        BitsAndBytesConfig,
+    )
+    from trl import DPOConfig, DPOTrainer
+
+    from datasets import Dataset
 
     set_seed(config.seed)
     pairs = load_preference_pairs(config.dataset_path)
@@ -209,7 +214,9 @@ def run_dpo(config: TrainingConfig, *, sft_adapter: str | None = None) -> dict[s
     )
 
     manifest = build_run_manifest(
-        config, stage="dpo", dataset_paths={"preference": config.dataset_path},
+        config,
+        stage="dpo",
+        dataset_paths={"preference": config.dataset_path},
         extra={"pair_audit": audit, "beta": beta, "sft_adapter": adapter},
     )
     write_run_manifest(manifest, output_dir)
@@ -256,7 +263,11 @@ def main(argv: list[str] | None = None) -> int:
     config = TrainingConfig.from_yaml(args.config)
 
     if args.audit_only or args.dry_run:
-        pairs = load_preference_pairs(config.dataset_path) if Path(config.dataset_path).is_file() else []
+        pairs = (
+            load_preference_pairs(config.dataset_path)
+            if Path(config.dataset_path).is_file()
+            else []
+        )
         audit = audit_pairs(pairs)
         manifest = build_run_manifest(
             config, stage="dpo-dry-run", dataset_paths={"preference": config.dataset_path}
@@ -281,7 +292,11 @@ def main(argv: list[str] | None = None) -> int:
     except RuntimeError as exc:
         print(f"\nDPO rejected: {exc}", file=sys.stderr)
         return 1
-    print(json.dumps({k: v for k, v in manifest.items() if k != "hyperparameters"}, indent=2, default=str))
+    print(
+        json.dumps(
+            {k: v for k, v in manifest.items() if k != "hyperparameters"}, indent=2, default=str
+        )
+    )
     return 0
 
 

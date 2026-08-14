@@ -30,7 +30,7 @@ from common.logging import get_logger
 
 log = get_logger(__name__)
 
-__all__ = ["merge_adapter", "verify_compatibility", "main"]
+__all__ = ["main", "merge_adapter", "verify_compatibility"]
 
 
 def verify_compatibility(base_model: str, adapter_dir: str | Path) -> dict[str, Any]:
@@ -83,9 +83,9 @@ def merge_adapter(
     force: bool = False,
 ) -> dict[str, Any]:
     """Load base + adapter, merge, and save the result plus a provenance record."""
-    import torch  # noqa: PLC0415
-    from peft import PeftModel  # noqa: PLC0415
-    from transformers import AutoModelForCausalLM, AutoTokenizer  # noqa: PLC0415
+    import torch
+    from peft import PeftModel
+    from transformers import AutoModelForCausalLM, AutoTokenizer
 
     compatibility = verify_compatibility(base_model, adapter_dir)
     if not compatibility["compatible"] and not force:
@@ -96,7 +96,9 @@ def merge_adapter(
     for warning in compatibility["warnings"]:
         log.warning("merge.warning", extra={"detail": warning})
 
-    torch_dtype = {"bfloat16": torch.bfloat16, "float16": torch.float16, "float32": torch.float32}[dtype]
+    torch_dtype = {"bfloat16": torch.bfloat16, "float16": torch.float16, "float32": torch.float32}[
+        dtype
+    ]
     target = Path(output_dir)
     target.mkdir(parents=True, exist_ok=True)
 
@@ -110,7 +112,9 @@ def merge_adapter(
     merged = model.merge_and_unload()
     merged.save_pretrained(str(target), safe_serialization=True)
 
-    tokenizer_source = adapter_dir if (Path(adapter_dir) / "tokenizer_config.json").is_file() else base_model
+    tokenizer_source = (
+        adapter_dir if (Path(adapter_dir) / "tokenizer_config.json").is_file() else base_model
+    )
     tokenizer = AutoTokenizer.from_pretrained(str(tokenizer_source))
     tokenizer.save_pretrained(str(target))
 

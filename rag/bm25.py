@@ -37,9 +37,9 @@ def default_tokenizer(text: str) -> list[str]:
 
 @dataclass(slots=True)
 class BM25Params:
-    k1: float = 1.2      # term-frequency saturation
-    b: float = 0.75      # length normalisation
-    delta: float = 1.0   # BM25+ lower bound on the tf component
+    k1: float = 1.2  # term-frequency saturation
+    b: float = 0.75  # length normalisation
+    delta: float = 1.0  # BM25+ lower bound on the tf component
 
 
 @dataclass(slots=True)

@@ -26,7 +26,7 @@ import os
 import shutil
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -42,7 +42,7 @@ from rag.vector_store import LocalVectorStore
 
 log = get_logger(__name__)
 
-__all__ = ["ReindexResult", "reindex", "activate", "rollback", "list_versions", "main"]
+__all__ = ["ReindexResult", "activate", "list_versions", "main", "reindex", "rollback"]
 
 ACTIVE_POINTER = "ACTIVE"
 HISTORY_FILE = "activation_history.json"
@@ -109,7 +109,7 @@ def _record_activation(index_root: Path, version: str, previous: str | None) -> 
         {
             "activated": version,
             "previous": previous,
-            "at": datetime.now(timezone.utc).isoformat(),
+            "at": datetime.now(UTC).isoformat(),
         }
     )
     write_json(path, history[-50:])
@@ -243,9 +243,7 @@ def run_regression(
             if any(c.product_id.upper() == wanted for c in result.chunks):
                 hits += 1
             else:
-                failures.append(
-                    {"question": question[:80], "reason": "expected_product_missing"}
-                )
+                failures.append({"question": question[:80], "reason": "expected_product_missing"})
         else:
             hits += 1
 

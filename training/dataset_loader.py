@@ -34,12 +34,12 @@ log = get_logger(__name__)
 
 __all__ = [
     "DatasetStats",
-    "load_sft_records",
-    "validate_records",
-    "split_records",
     "build_splits",
     "conversation_text",
     "load_preference_pairs",
+    "load_sft_records",
+    "split_records",
+    "validate_records",
 ]
 
 _SFT_NORMALIZATION = NormalizationConfig(zwsp_policy="strip")
@@ -100,7 +100,7 @@ def load_sft_records(path: str | Path, *, strict: bool = False) -> Iterator[SFTR
     for index, row in enumerate(read_jsonl(path, skip_invalid=not strict), start=1):
         try:
             yield SFTRecord.model_validate(row)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             message = f"{Path(path).name}:{index}: {exc}"
             if strict:
                 raise ValueError(message) from exc
@@ -133,7 +133,9 @@ def validate_records(
             record = record.model_copy(
                 update={
                     "messages": [
-                        m.model_copy(update={"content": normalize_text(m.content, _SFT_NORMALIZATION)})
+                        m.model_copy(
+                            update={"content": normalize_text(m.content, _SFT_NORMALIZATION)}
+                        )
                         for m in record.messages
                     ]
                 }
@@ -176,7 +178,14 @@ def validate_records(
         answer_lengths.append(len(answer))
         kept.append(record)
 
-    stats.invalid = stats.total - stats.valid - stats.exact_duplicates - stats.near_duplicates - stats.low_quality - stats.leaked
+    stats.invalid = (
+        stats.total
+        - stats.valid
+        - stats.exact_duplicates
+        - stats.near_duplicates
+        - stats.low_quality
+        - stats.leaked
+    )
     stats.mean_turns = sum(turn_counts) / len(turn_counts) if turn_counts else 0.0
     stats.mean_answer_chars = sum(answer_lengths) / len(answer_lengths) if answer_lengths else 0.0
 
@@ -185,9 +194,7 @@ def validate_records(
         "covered": len(INTENTS) - len(missing),
         "total": len(INTENTS),
         "missing": missing,
-        "distribution": {
-            k: round(v / stats.valid, 4) for k, v in stats.by_intent.items()
-        }
+        "distribution": {k: round(v / stats.valid, 4) for k, v in stats.by_intent.items()}
         if stats.valid
         else {},
     }
@@ -332,7 +339,18 @@ def describe_mixture(stats: DatasetStats, target: dict[str, float] | None = None
         "multi_turn": 0.05,
     }
     groups = {
-        "company_support": ("product_info", "service_info", "pricing", "specification", "availability", "warranty", "policy", "how_to", "installation", "troubleshooting"),
+        "company_support": (
+            "product_info",
+            "service_info",
+            "pricing",
+            "specification",
+            "availability",
+            "warranty",
+            "policy",
+            "how_to",
+            "installation",
+            "troubleshooting",
+        ),
         "general_khmer": ("general_inquiry", "greeting"),
         "code_switch": (),
         "difficult": ("complaint", "ambiguous"),
@@ -342,15 +360,11 @@ def describe_mixture(stats: DatasetStats, target: dict[str, float] | None = None
     }
     counts = Counter(stats.by_intent)
     total = sum(counts.values()) or 1
-    achieved = {
-        group: sum(counts[i] for i in intents) / total for group, intents in groups.items()
-    }
+    achieved = {group: sum(counts[i] for i in intents) / total for group, intents in groups.items()}
     return {
         "target": target_mixture,
         "achieved": {k: round(v, 4) for k, v in achieved.items()},
-        "delta": {
-            k: round(achieved.get(k, 0.0) - v, 4) for k, v in target_mixture.items()
-        },
+        "delta": {k: round(achieved.get(k, 0.0) - v, 4) for k, v in target_mixture.items()},
         "note": (
             "code_switch is not an intent - measure it with "
             "preprocessing.language_mixing.analyse_code_switching over the answers."

@@ -43,10 +43,10 @@ from rag.schemas import Chunk
 
 __all__ = [
     "ChunkingConfig",
-    "estimate_tokens",
-    "chunk_text",
-    "chunk_document",
     "calibrate_token_ratio",
+    "chunk_document",
+    "chunk_text",
+    "estimate_tokens",
 ]
 
 # Empirical cost multipliers - see the module docstring.
@@ -86,17 +86,17 @@ def estimate_tokens(text: str) -> int:
     total = 0.0
     for script, run in split_script_runs(text):
         if script == "khmer":
-            clusters = sum(
-                1 for c in iter_clusters(run) if classify_char(c[0]) is CharClass.BASE
-            )
+            clusters = sum(1 for c in iter_clusters(run) if classify_char(c[0]) is CharClass.BASE)
             # Khmer digits and punctuation also cost tokens.
-            others = sum(1 for c in run if is_khmer_char(c) and classify_char(c) is not CharClass.BASE)
+            others = sum(
+                1 for c in run if is_khmer_char(c) and classify_char(c) is not CharClass.BASE
+            )
             total += clusters * _KHMER_CLUSTER_TOKENS + others * 0.25
         else:
             total += len(_LATIN_WORD.findall(run)) * _LATIN_WORD_TOKENS
             total += len(_DIGIT_GROUP.findall(run)) * _DIGIT_GROUP_TOKENS
             total += sum(1 for c in run if not c.isalnum() and not c.isspace()) * 0.5
-    return max(1, int(round(total)))
+    return max(1, round(total))
 
 
 def calibrate_token_ratio(texts: list[str], tokenizer: Any) -> dict[str, float]:
@@ -184,9 +184,7 @@ def _overlap_units(units: list[str], overlap_tokens: int) -> list[str]:
     return out
 
 
-def chunk_text(
-    text: str, config: ChunkingConfig | None = None
-) -> list[tuple[str, list[str]]]:
+def chunk_text(text: str, config: ChunkingConfig | None = None) -> list[tuple[str, list[str]]]:
     """Split text into ``(chunk_text, heading_path)`` pairs."""
     cfg = config or ChunkingConfig()
     if not text.strip():

@@ -22,11 +22,20 @@ from typing import Any
 from company_data.loaders.base import LoadedDocument, LoaderError, check_file
 from company_data.loaders.text_loader import _read_text
 
-__all__ = ["load_csv", "CANONICAL_COLUMNS", "canonical_column"]
+__all__ = ["CANONICAL_COLUMNS", "canonical_column", "load_csv"]
 
 # Canonical field -> accepted header spellings (lower-cased, punctuation-free).
 CANONICAL_COLUMNS: dict[str, tuple[str, ...]] = {
-    "product_id": ("productid", "sku", "modelnumber", "model", "itemcode", "code", "លេខម៉ូដែល", "លេខកូដ"),
+    "product_id": (
+        "productid",
+        "sku",
+        "modelnumber",
+        "model",
+        "itemcode",
+        "code",
+        "លេខម៉ូដែល",
+        "លេខកូដ",
+    ),
     "product_name": ("productname", "name", "item", "title", "ឈ្មោះផលិតផល", "ផលិតផល"),
     "service_id": ("serviceid", "servicecode"),
     "service_name": ("servicename", "service", "សេវាកម្ម"),

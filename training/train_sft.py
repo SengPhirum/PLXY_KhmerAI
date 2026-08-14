@@ -47,7 +47,7 @@ from training.dataset_loader import load_sft_records, validate_records
 
 log = get_logger(__name__)
 
-__all__ = ["main", "run_training", "prepare_dataset", "dry_run"]
+__all__ = ["dry_run", "main", "prepare_dataset", "run_training"]
 
 
 def prepare_dataset(config: TrainingConfig) -> dict[str, Any]:
@@ -97,10 +97,9 @@ def dry_run(config: TrainingConfig) -> dict[str, Any]:
 
 def run_training(config: TrainingConfig, *, resume: bool | None = None) -> dict[str, Any]:
     """Execute the SFT run.  Requires ``requirements/training.txt`` and a GPU."""
-    import torch  # noqa: PLC0415
-    from datasets import Dataset  # noqa: PLC0415
-    from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training  # noqa: PLC0415
-    from transformers import (  # noqa: PLC0415
+    import torch
+    from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+    from transformers import (
         AutoModelForCausalLM,
         AutoTokenizer,
         BitsAndBytesConfig,
@@ -109,6 +108,7 @@ def run_training(config: TrainingConfig, *, resume: bool | None = None) -> dict[
         TrainingArguments,
     )
 
+    from datasets import Dataset
     from training.chat_template import build_completion_mask, supervised_token_ratio
 
     set_seed(config.seed)
@@ -158,7 +158,7 @@ def run_training(config: TrainingConfig, *, resume: bool | None = None) -> dict[
         bias="none",
         task_type="CAUSAL_LM",
         target_modules=targets,
-        modules_to_save=config.lora_target_modules and config.modules_to_save or None,
+        modules_to_save=(config.lora_target_modules and config.modules_to_save) or None,
     )
     model = get_peft_model(model, lora)
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -210,7 +210,11 @@ def run_training(config: TrainingConfig, *, resume: bool | None = None) -> dict[
     )
 
     # --- training --------------------------------------------------------
-    resume_from = _find_checkpoint(output_dir) if (resume if resume is not None else config.resume_from_checkpoint) else None
+    resume_from = (
+        _find_checkpoint(output_dir)
+        if (resume if resume is not None else config.resume_from_checkpoint)
+        else None
+    )
 
     arguments = TrainingArguments(
         output_dir=str(output_dir),
@@ -292,7 +296,9 @@ def _find_checkpoint(output_dir: Path) -> Path | None:
     output directory starts cleanly instead of failing inside the Trainer.
     """
     candidates = [
-        p for p in output_dir.glob("checkpoint-*") if p.is_dir() and (p / "trainer_state.json").is_file()
+        p
+        for p in output_dir.glob("checkpoint-*")
+        if p.is_dir() and (p / "trainer_state.json").is_file()
     ]
     if not candidates:
         return None
@@ -325,7 +331,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.dataset:
         overrides["training"]["dataset_path"] = args.dataset
 
-    config = TrainingConfig.from_yaml(args.config, overrides=overrides if overrides["training"] else None)
+    config = TrainingConfig.from_yaml(
+        args.config, overrides=overrides if overrides["training"] else None
+    )
 
     if not args.skip_upload_check:
         try:
@@ -354,7 +362,11 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 3
-    print(json.dumps({k: v for k, v in manifest.items() if k != "hyperparameters"}, indent=2, default=str))
+    print(
+        json.dumps(
+            {k: v for k, v in manifest.items() if k != "hyperparameters"}, indent=2, default=str
+        )
+    )
     return 0
 
 

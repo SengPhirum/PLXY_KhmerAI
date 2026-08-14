@@ -18,7 +18,7 @@ import json
 import sys
 import time
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -70,9 +70,7 @@ class IngestionSettings:
             embed_batch_size=int(embedding.get("batch_size", 16)),
             vector_backend=str(store.get("backend", "local")),
             index_root=Path(store.get("index_root", str(INDEX_ROOT))),
-            allow_non_semantic_embedder=bool(
-                ingestion.get("allow_non_semantic_embedder", False)
-            ),
+            allow_non_semantic_embedder=bool(ingestion.get("allow_non_semantic_embedder", False)),
             include_non_retrievable=bool(ingestion.get("include_non_retrievable", False)),
         )
 
@@ -94,7 +92,7 @@ class IngestionSettings:
 
 def new_index_version(prefix: str | None = None) -> str:
     """Date-sequenced version, e.g. ``2026-08-14.1`` (§37 knowledge_index)."""
-    stamp = prefix or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    stamp = prefix or datetime.now(UTC).strftime("%Y-%m-%d")
     existing = sorted(p.name for p in INDEX_ROOT.glob(f"{stamp}.*") if p.is_dir())
     sequence = 1
     for name in existing:
@@ -111,7 +109,7 @@ def load_records(path: str | Path) -> list[CompanyDocument]:
     for row in read_jsonl(path):
         try:
             documents.append(CompanyDocument.model_validate(row))
-        except Exception as exc:  # noqa: BLE001 - one bad row must not kill the build
+        except Exception as exc:
             log.error(
                 "rag.ingestion.invalid_record",
                 extra={"error": str(exc), "id": str(row.get("document_id", "?"))},
@@ -143,11 +141,7 @@ def build_index(
             "allow_non_semantic_embedder=true for tests."
         )
 
-    eligible = [
-        d
-        for d in documents
-        if cfg.include_non_retrievable or d.is_retrievable(cfg.as_of)
-    ]
+    eligible = [d for d in documents if cfg.include_non_retrievable or d.is_retrievable(cfg.as_of)]
     skipped = len(documents) - len(eligible)
     if skipped:
         log.info("rag.ingestion.skipped_non_retrievable", extra={"count": skipped})
@@ -195,7 +189,9 @@ def build_index(
         documents=len(eligible),
         chunks=len(chunks),
         source_file=str(source_file),
-        source_sha256=sha256_file(str(source_file)) if source_file and Path(source_file).is_file() else "",
+        source_sha256=sha256_file(str(source_file))
+        if source_file and Path(source_file).is_file()
+        else "",
         code_commit=git_commit(),
         config_fingerprint=cfg.fingerprint(),
         build_seconds=round(time.perf_counter() - started, 2),

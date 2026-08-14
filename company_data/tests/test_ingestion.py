@@ -213,7 +213,7 @@ def test_ingest_directory_produces_a_full_report(company_dir: Path) -> None:
 
 
 def test_conflicting_active_versions_are_detected(conflicting_dir: Path) -> None:
-    documents, report = ingest_directory(conflicting_dir, as_of=date(2026, 8, 14))
+    _documents, report = ingest_directory(conflicting_dir, as_of=date(2026, 8, 14))
     assert report.conflicting_versions, "two active warranty versions were not flagged"
     conflict = report.conflicting_versions[0]
     assert len(conflict["document_ids"]) == 2

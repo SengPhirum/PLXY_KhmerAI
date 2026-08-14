@@ -32,8 +32,16 @@ from synthetic_data._generator import make_record, stable_sample_id  # noqa: E40
 log = get_logger("synthetic.unanswerable")
 
 FAKE_PRODUCTS = (
-    "ZX-9999Q", "MEGA-COOL 8000", "ULTRA-FREEZE X1", "QN-0000Z", "TURBO-CHILL 500",
-    "RF-99Z", "ARCTIC-PRO 9", "SNOWMAX 7700", "GLACIER-X", "POLARIS-3000",
+    "ZX-9999Q",
+    "MEGA-COOL 8000",
+    "ULTRA-FREEZE X1",
+    "QN-0000Z",
+    "TURBO-CHILL 500",
+    "RF-99Z",
+    "ARCTIC-PRO 9",
+    "SNOWMAX 7700",
+    "GLACIER-X",
+    "POLARIS-3000",
 )
 
 # (question template, intent, category)

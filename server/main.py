@@ -136,7 +136,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             allow_origins=resolved.cors_origin_list,
             allow_credentials=False,
             allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
-            allow_headers=["Content-Type", "X-API-Key", "Authorization", resolved.request_id_header],
+            allow_headers=[
+                "Content-Type",
+                "X-API-Key",
+                "Authorization",
+                resolved.request_id_header,
+            ],
             expose_headers=[resolved.request_id_header, "X-Response-Time-Ms"],
         )
 
@@ -265,9 +270,7 @@ def _register_routes(application: FastAPI) -> None:
 
         conversation_id_var.set(outcome.conversation_id)
         _record_outcome_metrics(outcome, state)
-        return service.to_response(
-            outcome, request_id=request_id, versions=state.version_dict()
-        )
+        return service.to_response(outcome, request_id=request_id, versions=state.version_dict())
 
     @application.post("/v1/chat/stream", tags=["chat"])
     async def chat_stream(
@@ -360,7 +363,10 @@ def _register_routes(application: FastAPI) -> None:
         by_name = {m.get("name", ""): m for m in available}
 
         infos: list[ModelInfo] = []
-        for name, role in ((settings.ollama_model, "primary"), (settings.ollama_fallback_model, "fallback")):
+        for name, role in (
+            (settings.ollama_model, "primary"),
+            (settings.ollama_fallback_model, "fallback"),
+        ):
             if not name:
                 continue
             raw = by_name.get(name, {})
@@ -393,7 +399,7 @@ def _register_routes(application: FastAPI) -> None:
     async def admin_reindex(
         payload: ReindexRequest, state: Annotated[AppState, Depends(get_state)]
     ) -> ReindexResponse:
-        import asyncio  # noqa: PLC0415 - only needed on this path
+        import asyncio
 
         from common.paths import PROJECT_ROOT, resolve_under_root
         from rag.ingestion import IngestionSettings

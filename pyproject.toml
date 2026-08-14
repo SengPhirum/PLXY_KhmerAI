@@ -87,6 +87,14 @@ ignore = [
   "RUF003",
   "B008",   # FastAPI Depends() in defaults is idiomatic
   "SIM105", # contextlib.suppress is not always clearer
+  # The atomic build-then-swap code (common/io.py, rag/reindex.py) uses the
+  # os-level primitives deliberately: os.replace/os.symlink/os.readlink make the
+  # exact syscall being relied on for atomicity explicit at the call site, which
+  # is the whole point of that code. Path.replace() is the same call wearing a
+  # different name, and hides that intent.
+  "PTH105", # os.replace
+  "PTH115", # os.readlink
+  "PTH211", # os.symlink
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -100,6 +108,12 @@ ignore = [
 "training/**" = ["T20"]
 "preprocessing/**" = ["S324"]  # non-crypto hashes are deliberate for dedup
 "common/hashing.py" = ["S324"]
+# Modules with a `main()` CLI entry point: printing IS the interface there.
+"preprocessing/pipeline.py" = ["T20"]
+"company_data/validate.py" = ["T20"]
+"rag/ingestion.py" = ["T20"]
+"rag/reindex.py" = ["T20"]
+"security/secret_scanner.py" = ["T20"]
 
 [tool.ruff.lint.isort]
 known-first-party = [

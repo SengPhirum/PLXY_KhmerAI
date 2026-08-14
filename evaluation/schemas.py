@@ -2,21 +2,21 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
 __all__ = [
-    "EvalCategory",
-    "GoldenItem",
-    "ModelAnswer",
-    "ItemResult",
-    "EvalReport",
-    "HumanRubric",
     "RUBRIC_DIMENSIONS",
     "ComparisonReport",
+    "EvalCategory",
+    "EvalReport",
+    "GoldenItem",
+    "HumanRubric",
+    "ItemResult",
+    "ModelAnswer",
 ]
 
 
@@ -103,7 +103,7 @@ class EvalReport(BaseModel):
 
     name: str
     model: str = ""
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     code_commit: str = "unknown"
     prompt_version: str = ""
     index_version: str = ""
@@ -124,7 +124,9 @@ class EvalReport(BaseModel):
     def gates_passed(self) -> bool:
         return all(g.get("passed", False) for g in self.gates.values())
 
-    def add_gate(self, name: str, value: float, threshold: float, *, higher_is_better: bool = True) -> None:
+    def add_gate(
+        self, name: str, value: float, threshold: float, *, higher_is_better: bool = True
+    ) -> None:
         passed = value >= threshold if higher_is_better else value <= threshold
         self.gates[name] = {
             "value": round(value, 4),
@@ -172,9 +174,7 @@ class EvalReport(BaseModel):
                     f"| {name} | {gate['value']} | {direction} {gate['threshold']} | {symbol} |"
                 )
             lines.append("")
-            lines.append(
-                f"**Overall gate status: {'PASS' if self.gates_passed else 'FAIL'}**"
-            )
+            lines.append(f"**Overall gate status: {'PASS' if self.gates_passed else 'FAIL'}**")
             lines.append("")
         failures = [r for r in self.results if not r.passed]
         if failures:
@@ -225,15 +225,12 @@ class HumanRubric(BaseModel):
     faithfulness: int = Field(ge=1, le=5)
     clarity: int = Field(ge=1, le=5)
     comment: str = ""
-    reviewed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    reviewed_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     @property
     def mean(self) -> float:
         return round(
-            sum(
-                getattr(self, dimension)
-                for dimension, _ in RUBRIC_DIMENSIONS
-            )
+            sum(getattr(self, dimension) for dimension, _ in RUBRIC_DIMENSIONS)
             / len(RUBRIC_DIMENSIONS),
             3,
         )
@@ -251,7 +248,7 @@ class ComparisonReport(BaseModel):
 
     candidate: str
     baseline: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     metrics: dict[str, dict[str, float]] = Field(default_factory=dict)
     regressions: list[str] = Field(default_factory=list)
     improvements: list[str] = Field(default_factory=list)

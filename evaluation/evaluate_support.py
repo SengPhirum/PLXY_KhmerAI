@@ -20,15 +20,26 @@ from evaluation.schemas import EvalReport, GoldenItem, ItemResult, ModelAnswer
 
 log = get_logger(__name__)
 
-__all__ = ["evaluate_support", "score_item", "main"]
+__all__ = ["evaluate_support", "main", "score_item"]
 
 _UNCERTAINTY_MARKERS = (
-    "មិនមានព័ត៌មាន", "ខ្ញុំមិនដឹង", "មិនអាចបញ្ជាក់", "មិនមានក្នុងឯកសារ",
-    "សូមទាក់ទង", "i don't have", "cannot confirm", "please contact",
+    "មិនមានព័ត៌មាន",
+    "ខ្ញុំមិនដឹង",
+    "មិនអាចបញ្ជាក់",
+    "មិនមានក្នុងឯកសារ",
+    "សូមទាក់ទង",
+    "i don't have",
+    "cannot confirm",
+    "please contact",
 )
 _ESCALATION_MARKERS = (
-    "បញ្ជូន", "ផ្នែកបម្រើអតិថិជន", "បុគ្គលិក", "ទាក់ទងផ្នែក",
-    "contact support", "transfer you", "a colleague",
+    "បញ្ជូន",
+    "ផ្នែកបម្រើអតិថិជន",
+    "បុគ្គលិក",
+    "ទាក់ទងផ្នែក",
+    "contact support",
+    "transfer you",
+    "a colleague",
 )
 # A support answer that runs past this is not concise (§32).
 _MAX_REASONABLE_CHARS = 1200
@@ -149,7 +160,9 @@ def evaluate_support(
     gates = thresholds or {}
     report.add_gate("support_accuracy", report.pass_rate, gates.get("support_accuracy_min", 0.85))
     report.add_gate(
-        "behaviour_correct", report.aggregate.get("behaviour", 0.0), gates.get("behaviour_min", 0.90)
+        "behaviour_correct",
+        report.aggregate.get("behaviour", 0.0),
+        gates.get("behaviour_min", 0.90),
     )
     return stamp_report(report)
 

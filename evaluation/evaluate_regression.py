@@ -26,7 +26,7 @@ from evaluation.schemas import ComparisonReport
 
 log = get_logger(__name__)
 
-__all__ = ["compare_reports", "main", "LOWER_IS_BETTER", "BLOCKING_METRICS"]
+__all__ = ["BLOCKING_METRICS", "LOWER_IS_BETTER", "compare_reports", "main"]
 
 # Metrics where a *lower* value is an improvement.
 LOWER_IS_BETTER = frozenset(
@@ -87,7 +87,9 @@ def compare_reports(
 
     for metric in sorted(set(candidate_metrics) | set(baseline_metrics)):
         # Latency and count metrics are informational, not pass/fail.
-        if metric.startswith(("latency_ms_", "chunks", "claims", "unanswerable_items", "adversarial_items")):
+        if metric.startswith(
+            ("latency_ms_", "chunks", "claims", "unanswerable_items", "adversarial_items")
+        ):
             comparison.metrics[metric] = {
                 "baseline": baseline_metrics.get(metric, 0.0),
                 "candidate": candidate_metrics.get(metric, 0.0),

@@ -23,9 +23,9 @@ log = get_logger(__name__)
 
 __all__ = [
     "AppState",
-    "get_state",
     "get_chat_service",
     "get_rag_service",
+    "get_state",
     "require_admin",
     "require_client",
 ]

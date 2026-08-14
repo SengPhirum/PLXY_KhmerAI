@@ -19,7 +19,7 @@ import json
 import statistics
 import sys
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -30,7 +30,7 @@ from evaluation.metrics import khmer_fluency, latency_percentiles
 
 log = get_logger(__name__)
 
-__all__ = ["BenchmarkResult", "benchmark_model", "main", "DEFAULT_PROMPTS"]
+__all__ = ["DEFAULT_PROMPTS", "BenchmarkResult", "benchmark_model", "main"]
 
 # Deliberately covers every input shape from §Phase 12 "verification".
 DEFAULT_PROMPTS: tuple[tuple[str, str], ...] = (
@@ -141,7 +141,7 @@ async def _one_request(
                     pieces.append(piece)
                 if event.get("done"):
                     metrics = event
-    except Exception as exc:  # noqa: BLE001 - a failed run is data, not a crash
+    except Exception as exc:
         return SingleRun(prompt_id, False, error=f"{type(exc).__name__}: {exc}")
 
     latency_ms = (time.perf_counter() - started) * 1000
@@ -173,12 +173,13 @@ async def _run(
     options: dict[str, Any],
     timeout: float,
 ) -> BenchmarkResult:
-    import httpx  # noqa: PLC0415
+    import httpx
 
     prompts = [(pid, text) for pid, text in DEFAULT_PROMPTS for _ in range(repeats)]
     semaphore = asyncio.Semaphore(concurrency)
 
     async with httpx.AsyncClient(base_url=base_url.rstrip("/"), timeout=timeout) as client:
+
         async def guarded(pid: str, text: str) -> SingleRun:
             async with semaphore:
                 return await _one_request(client, model, pid, text, options)
@@ -280,14 +281,14 @@ def main(argv: list[str] | None = None) -> int:
         )
         reports.append(report)
 
-    failed_everything = all(
-        all(level["succeeded"] == 0 for level in r["levels"]) for r in reports
-    )
+    failed_everything = all(all(level["succeeded"] == 0 for level in r["levels"]) for r in reports)
     payload: dict[str, Any] = {"reports": reports}
     if len(reports) > 1:
         payload["comparison"] = _decision_matrix(reports)
 
-    output = Path(args.output) if args.output else ensure_dir(EVAL_REPORT_DIR) / "model_benchmark.json"
+    output = (
+        Path(args.output) if args.output else ensure_dir(EVAL_REPORT_DIR) / "model_benchmark.json"
+    )
     write_json(output, payload)
     print(json.dumps(payload, indent=2, ensure_ascii=False))
 

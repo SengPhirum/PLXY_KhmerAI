@@ -133,9 +133,7 @@ def test_fluency_flags_a_repetition_loop() -> None:
 
 
 def test_fluency_flags_a_mangled_model_number() -> None:
-    result = khmer_fluency(
-        "ម៉ូដែល ក្យូអិន បួនប្រាំរយ មានការធានា ២៤ ខែ។", source="ម៉ូដែល QN-4500A"
-    )
+    result = khmer_fluency("ម៉ូដែល ក្យូអិន បួនប្រាំរយ មានការធានា ២៤ ខែ។", source="ម៉ូដែល QN-4500A")
     assert any(i.startswith("identifiers_missing") for i in result["issues"])
 
 
@@ -180,9 +178,7 @@ def test_support_scorer_rejects_a_missing_fact() -> None:
 def test_support_scorer_requires_escalation_when_expected() -> None:
     item = _item(expected_behaviour="escalate")
     assert not score_support(item, _answer("តម្លៃគឺ 520 USD។")).passed
-    assert score_support(
-        item, _answer("សូមទាក់ទងផ្នែកបម្រើអតិថិជនរបស់យើង។")
-    ).passed
+    assert score_support(item, _answer("សូមទាក់ទងផ្នែកបម្រើអតិថិជនរបស់យើង។")).passed
 
 
 def test_support_scorer_flags_hedging_on_an_answerable_question() -> None:
@@ -199,9 +195,7 @@ def test_support_scorer_flags_an_over_long_answer() -> None:
 
 def test_hallucination_scorer_passes_a_correct_refusal() -> None:
     item = _item(question="តើ ZX-9999Q តម្លៃប៉ុន្មាន?", expected_behaviour="uncertainty")
-    result = score_hallucination(
-        item, _answer("ខ្ញុំមិនមានព័ត៌មានអំពីម៉ូដែលនេះទេ សូមទាក់ទងផ្នែកបម្រើអតិថិជន។")
-    )
+    result = score_hallucination(item, _answer("ខ្ញុំមិនមានព័ត៌មានអំពីម៉ូដែលនេះទេ សូមទាក់ទងផ្នែកបម្រើអតិថិជន។"))
     assert result.passed
 
 
@@ -252,7 +246,12 @@ def test_report_gates_and_markdown() -> None:
 
 
 def test_report_is_written_as_json_and_markdown(tmp_path: Path) -> None:
-    report = EvalReport(name="t", items=1, passed=1, results=[ItemResult(item_id="a", category="khmer_general", passed=True)])
+    report = EvalReport(
+        name="t",
+        items=1,
+        passed=1,
+        results=[ItemResult(item_id="a", category="khmer_general", passed=True)],
+    )
     json_path, markdown_path = write_report(report, "unit_test_report", directory=tmp_path)
     assert json.loads(json_path.read_text(encoding="utf-8"))["name"] == "t"
     assert "Evaluation report" in markdown_path.read_text(encoding="utf-8")
@@ -260,8 +259,14 @@ def test_report_is_written_as_json_and_markdown(tmp_path: Path) -> None:
 
 def test_human_rubric_mean_and_blocking() -> None:
     good = HumanRubric(
-        item_id="a", reviewer="r", naturalness=5, correctness=5, helpfulness=4,
-        professional_tone=5, faithfulness=5, clarity=4,
+        item_id="a",
+        reviewer="r",
+        naturalness=5,
+        correctness=5,
+        helpfulness=4,
+        professional_tone=5,
+        faithfulness=5,
+        clarity=4,
     )
     assert good.mean > 4.0
     assert not good.blocking
@@ -273,9 +278,7 @@ def test_human_rubric_mean_and_blocking() -> None:
 # --- regression -------------------------------------------------------------
 def _write_report_json(path: Path, aggregate: dict[str, float], *, model: str) -> Path:
     path.write_text(
-        json.dumps(
-            {"name": "t", "model": model, "items": 10, "passed": 9, "aggregate": aggregate}
-        ),
+        json.dumps({"name": "t", "model": model, "items": 10, "passed": 9, "aggregate": aggregate}),
         encoding="utf-8",
     )
     return path

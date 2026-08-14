@@ -30,13 +30,13 @@ from common.logging import get_logger
 log = get_logger(__name__)
 
 __all__ = [
-    "OllamaClient",
-    "OllamaError",
-    "OllamaUnavailable",
-    "OllamaTimeout",
     "CapacityExceeded",
     "GenerationChunk",
     "GenerationResult",
+    "OllamaClient",
+    "OllamaError",
+    "OllamaTimeout",
+    "OllamaUnavailable",
 ]
 
 
@@ -239,7 +239,8 @@ class OllamaClient:
         started = time.perf_counter()
         try:
             response = await self._http().post(
-                "/api/chat", json=self._payload(messages, model=model, options=options, stream=False)
+                "/api/chat",
+                json=self._payload(messages, model=model, options=options, stream=False),
             )
             response.raise_for_status()
             body = response.json()
@@ -310,9 +311,7 @@ class OllamaClient:
 
                     if event.get("done"):
                         total_ms = (time.perf_counter() - started) * 1000
-                        ttft = (
-                            (first_token_at - started) * 1000 if first_token_at else total_ms
-                        )
+                        ttft = (first_token_at - started) * 1000 if first_token_at else total_ms
                         yield GenerationChunk(
                             text="",
                             done=True,

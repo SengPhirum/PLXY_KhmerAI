@@ -27,14 +27,31 @@ if str(_REPO_ROOT) not in sys.path:
 from common.io import write_jsonl  # noqa: E402
 from common.logging import get_logger  # noqa: E402
 from preprocessing.language_mixing import analyse_code_switching  # noqa: E402
-from synthetic_data._generator import SourceDocument, load_documents, make_record, stable_sample_id  # noqa: E402
+from synthetic_data._generator import (  # noqa: E402
+    SourceDocument,
+    load_documents,
+    make_record,
+    stable_sample_id,
+)
 
 log = get_logger("synthetic.code_switch")
 
 # English terms Cambodian customers genuinely keep in English.
 ENGLISH_TERMS = (
-    "warranty", "delivery", "stock", "promotion", "invoice", "model", "price",
-    "spec", "service", "support", "order", "payment", "discount", "refund",
+    "warranty",
+    "delivery",
+    "stock",
+    "promotion",
+    "invoice",
+    "model",
+    "price",
+    "spec",
+    "service",
+    "support",
+    "order",
+    "payment",
+    "discount",
+    "refund",
 )
 PAYMENT_APPS = ("ABA Pay", "Wing", "ACLEDA Mobile", "Bakong")
 
@@ -108,7 +125,12 @@ def main(argv: list[str] | None = None) -> int:
     records = generate(documents, count=args.count)
     written = write_jsonl(args.output, records)
     log.info("synthetic.code_switch.generated", extra={"records": written})
-    print(json.dumps({"records": written, "english_terms": len(ENGLISH_TERMS), "output": args.output}, indent=2))
+    print(
+        json.dumps(
+            {"records": written, "english_terms": len(ENGLISH_TERMS), "output": args.output},
+            indent=2,
+        )
+    )
     return 0
 
 

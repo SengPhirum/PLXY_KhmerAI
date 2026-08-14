@@ -16,33 +16,65 @@ from __future__ import annotations
 
 import math
 import re
-from collections.abc import Iterable, Iterator
 from collections import Counter
+from collections.abc import Iterable, Iterator
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
 __all__ = [
     "SecretFinding",
-    "scan_text",
     "scan_bytes",
     "scan_path",
     "scan_repository",
+    "scan_text",
     "shannon_entropy",
 ]
 
 _SKIP_DIRS = frozenset(
     {
-        ".git", ".venv", "venv", "node_modules", "__pycache__", ".mypy_cache",
-        ".pytest_cache", ".ruff_cache", "data", "models", "checkpoints",
-        "outputs", "htmlcov", "dist", "build", ".hypothesis",
+        ".git",
+        ".venv",
+        "venv",
+        "node_modules",
+        "__pycache__",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+        "data",
+        "models",
+        "checkpoints",
+        "outputs",
+        "htmlcov",
+        "dist",
+        "build",
+        ".hypothesis",
     }
 )
 _SKIP_SUFFIXES = frozenset(
     {
-        ".gguf", ".safetensors", ".bin", ".pt", ".ckpt", ".png", ".jpg", ".jpeg",
-        ".gif", ".pdf", ".zip", ".gz", ".tar", ".woff", ".woff2", ".ico", ".so",
-        ".dylib", ".parquet", ".arrow", ".npy", ".npz",
+        ".gguf",
+        ".safetensors",
+        ".bin",
+        ".pt",
+        ".ckpt",
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".pdf",
+        ".zip",
+        ".gz",
+        ".tar",
+        ".woff",
+        ".woff2",
+        ".ico",
+        ".so",
+        ".dylib",
+        ".parquet",
+        ".arrow",
+        ".npy",
+        ".npz",
     }
 )
 _MAX_FILE_BYTES = 4 * 1024 * 1024
@@ -50,7 +82,11 @@ _MAX_FILE_BYTES = 4 * 1024 * 1024
 # (rule, severity, pattern)
 _RULES: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     ("aws_access_key", "critical", re.compile(r"\b(?:AKIA|ASIA|ABIA|ACCA)[0-9A-Z]{16}\b")),
-    ("aws_secret_key", "critical", re.compile(r"(?i)aws_?secret_?access_?key\s*[:=]\s*[\"']?([A-Za-z0-9/+=]{40})")),
+    (
+        "aws_secret_key",
+        "critical",
+        re.compile(r"(?i)aws_?secret_?access_?key\s*[:=]\s*[\"']?([A-Za-z0-9/+=]{40})"),
+    ),
     ("github_token", "critical", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{36,255}\b")),
     ("gitlab_token", "critical", re.compile(r"\bglpat-[A-Za-z0-9_\-]{20,}\b")),
     ("slack_token", "critical", re.compile(r"\bxox[abprs]-[A-Za-z0-9-]{10,}\b")),
@@ -59,8 +95,18 @@ _RULES: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     ("hf_token", "critical", re.compile(r"\bhf_[A-Za-z0-9]{30,}\b")),
     ("google_api_key", "critical", re.compile(r"\bAIza[0-9A-Za-z_\-]{35}\b")),
     ("private_key", "critical", re.compile(r"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----")),
-    ("jwt", "high", re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b")),
-    ("connection_string", "high", re.compile(r"(?i)\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp)://[^\s:@/]+:[^\s:@/]+@")),
+    (
+        "jwt",
+        "high",
+        re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b"),
+    ),
+    (
+        "connection_string",
+        "high",
+        re.compile(
+            r"(?i)\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp)://[^\s:@/]+:[^\s:@/]+@"
+        ),
+    ),
     (
         "assigned_secret",
         "high",
@@ -73,14 +119,20 @@ _RULES: tuple[tuple[str, str, re.Pattern[str]], ...] = (
             r"\s*[:=]\s*[\"']([^\"'\s]{8,})[\"']"
         ),
     ),
-    ("bearer_literal", "medium", re.compile(r"(?i)\bauthorization\s*[:=]\s*[\"']?bearer\s+[A-Za-z0-9._\-]{16,}")),
+    (
+        "bearer_literal",
+        "medium",
+        re.compile(r"(?i)\bauthorization\s*[:=]\s*[\"']?bearer\s+[A-Za-z0-9._\-]{16,}"),
+    ),
 )
 
 # Values that look like secrets but are deliberate placeholders.
 _PLACEHOLDER = re.compile(
     r"(?i)^(?:change[_-]?me|placeholder|example|dummy|test|sample|your[_-]?\w+|x{4,}|\*{4,}|<[^>]+>|\$\{[^}]+\}|redacted|none|null|todo)",
 )
-_ALLOW_COMMENT = re.compile(r"(?i)#\s*(?:nosec|secret-scanner:\s*ignore|pragma:\s*allowlist secret)")
+_ALLOW_COMMENT = re.compile(
+    r"(?i)#\s*(?:nosec|secret-scanner:\s*ignore|pragma:\s*allowlist secret)"
+)
 
 
 @dataclass(slots=True, frozen=True)

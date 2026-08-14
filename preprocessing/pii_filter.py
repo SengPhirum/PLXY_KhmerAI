@@ -25,7 +25,7 @@ from typing import Any, Literal
 from common.hashing import sha256_file
 from security.data_redaction import Redactor, normalise_khmer_digits
 
-__all__ = ["PiiPolicy", "PiiFilter", "PiiReport", "build_pre_upload_report"]
+__all__ = ["PiiFilter", "PiiPolicy", "PiiReport", "build_pre_upload_report"]
 
 Mode = Literal["redact", "drop", "report_only"]
 
@@ -165,7 +165,7 @@ def build_pre_upload_report(
     The returned dict is written to ``data/manifests/pre_upload_report.json`` and
     is checked by ``training/common.py`` before any dataset is read on Colab.
     """
-    from common.io import read_jsonl  # noqa: PLC0415 - avoids a circular import at module load
+    from common.io import read_jsonl
 
     filter_ = PiiFilter(policy or PiiPolicy.for_cloud_upload())
     files: list[dict[str, Any]] = []

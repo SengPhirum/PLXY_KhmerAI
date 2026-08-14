@@ -15,7 +15,7 @@ Status semantics (used by retrieval filters):
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from enum import StrEnum
 from typing import Any
 
@@ -24,13 +24,13 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from common.hashing import sha256_text, stable_id
 
 __all__ = [
-    "DocumentStatus",
-    "Confidentiality",
     "AccessLevel",
-    "ValidationStatus",
     "CompanyDocument",
+    "Confidentiality",
+    "DocumentStatus",
     "IngestionIssue",
     "IngestionReport",
+    "ValidationStatus",
 ]
 
 
@@ -42,10 +42,10 @@ class DocumentStatus(StrEnum):
 
 
 class Confidentiality(StrEnum):
-    PUBLIC = "public"                 # safe to quote to a customer
+    PUBLIC = "public"  # safe to quote to a customer
     CUSTOMER_SHAREABLE = "customer_shareable"
-    INTERNAL = "internal"             # may inform an answer but must not be quoted
-    RESTRICTED = "restricted"         # never enters the retrieval index
+    INTERNAL = "internal"  # may inform an answer but must not be quoted
+    RESTRICTED = "restricted"  # never enters the retrieval index
 
 
 class AccessLevel(StrEnum):
@@ -58,7 +58,7 @@ class AccessLevel(StrEnum):
 class ValidationStatus(StrEnum):
     VALID = "valid"
     NEEDS_REVIEW = "needs_review"
-    QUARANTINED = "quarantined"       # injection or secret detected - not indexed
+    QUARANTINED = "quarantined"  # injection or secret detected - not indexed
     INVALID = "invalid"
 
 
@@ -91,7 +91,7 @@ class CompanyDocument(BaseModel):
     validation_status: ValidationStatus = ValidationStatus.NEEDS_REVIEW
     status: DocumentStatus = DocumentStatus.DRAFT
     owner: str = "unassigned"
-    last_updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_updated: datetime = Field(default_factory=lambda: datetime.now(UTC))
     text: str
     content_hash: str = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
@@ -121,7 +121,11 @@ class CompanyDocument(BaseModel):
                 "document_id",
                 stable_id(self.source_path or self.document_title, self.version, self.content_hash),
             )
-        if self.expiration_date and self.effective_date and self.expiration_date < self.effective_date:
+        if (
+            self.expiration_date
+            and self.effective_date
+            and self.expiration_date < self.effective_date
+        ):
             raise ValueError(
                 f"expiration_date {self.expiration_date} precedes effective_date {self.effective_date}"
             )
@@ -131,11 +135,11 @@ class CompanyDocument(BaseModel):
     def is_expired(self, as_of: date | None = None) -> bool:
         if self.expiration_date is None:
             return False
-        return self.expiration_date < (as_of or datetime.now(timezone.utc).date())
+        return self.expiration_date < (as_of or datetime.now(UTC).date())
 
     def is_effective(self, as_of: date | None = None) -> bool:
         """Currently in force: effective, not expired, and marked active."""
-        today = as_of or datetime.now(timezone.utc).date()
+        today = as_of or datetime.now(UTC).date()
         if self.status is not DocumentStatus.ACTIVE:
             return False
         if self.effective_date and self.effective_date > today:
@@ -200,7 +204,7 @@ class IngestionIssue(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    severity: str = "warning"        # info | warning | error
+    severity: str = "warning"  # info | warning | error
     code: str
     message: str
     source_path: str = ""

@@ -28,7 +28,7 @@ import math
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import Any
 
 from common.logging import get_logger
@@ -38,7 +38,7 @@ from rag.schemas import RetrievedChunk
 
 log = get_logger(__name__)
 
-__all__ = ["Reranker", "HeuristicReranker", "CrossEncoderReranker", "build_reranker"]
+__all__ = ["CrossEncoderReranker", "HeuristicReranker", "Reranker", "build_reranker"]
 
 _IDENTIFIER_KINDS = frozenset({SpanKind.MODEL_NUMBER, SpanKind.SKU})
 
@@ -89,7 +89,7 @@ class HeuristicReranker(Reranker):
             effective = date.fromisoformat(effective_date)
         except ValueError:
             return 0.0
-        today = self.as_of or datetime.now(timezone.utc).date()
+        today = self.as_of or datetime.now(UTC).date()
         age_days = max(0, (today - effective).days)
         # Half-life of two years: a document from 2 years ago scores 0.5.
         return math.exp(-age_days / 1055.0)
@@ -120,9 +120,7 @@ class HeuristicReranker(Reranker):
                 score += weight.syllable_overlap * overlap
 
             if chunk.heading_path:
-                heading_tokens = set(
-                    tokenize_for_search(" ".join(chunk.heading_path))
-                )
+                heading_tokens = set(tokenize_for_search(" ".join(chunk.heading_path)))
                 if heading_tokens & query_tokens:
                     score += weight.heading_match
 
@@ -157,7 +155,7 @@ class CrossEncoderReranker(Reranker):
 
     def _load(self) -> Any:
         if self._model is None:
-            from sentence_transformers import CrossEncoder  # noqa: PLC0415
+            from sentence_transformers import CrossEncoder
 
             self._model = CrossEncoder(self.model_name, device=self.device)
         return self._model
@@ -174,7 +172,7 @@ class CrossEncoderReranker(Reranker):
                 batch_size=self.batch_size,
                 show_progress_bar=False,
             )
-        except Exception as exc:  # noqa: BLE001 - reranking must never break a request
+        except Exception as exc:
             log.warning(
                 "rag.reranker.failed_falling_back",
                 extra={"model": self.model_name, "error": str(exc)},

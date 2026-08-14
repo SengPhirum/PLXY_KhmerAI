@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import itertools
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-__all__ = ["CleanRecord", "PipelineStats", "SFTMessage", "SFTRecord", "SFTMetadata", "INTENTS"]
+__all__ = ["INTENTS", "CleanRecord", "PipelineStats", "SFTMessage", "SFTMetadata", "SFTRecord"]
 
 # §Phase 7 - the closed intent vocabulary the SFT dataset must cover.
 INTENTS: tuple[str, ...] = (
@@ -98,9 +99,9 @@ class SFTMetadata(BaseModel):
     source_type: str = ""
     source_id: str = ""
     quality_score: float = 1.0
-    review_status: Literal[
-        "unreviewed", "auto_checked", "human_approved", "human_rejected"
-    ] = "unreviewed"
+    review_status: Literal["unreviewed", "auto_checked", "human_approved", "human_rejected"] = (
+        "unreviewed"
+    )
     synthetic: bool = False
 
     @field_validator("intent")
@@ -132,7 +133,7 @@ class SFTRecord(BaseModel):
         if "system" in roles and roles[0] != "system":
             raise ValueError("the system message must come first")
         body = [r for r in roles if r != "system"]
-        for previous, current in zip(body, body[1:], strict=False):
+        for previous, current in itertools.pairwise(body):
             if previous == current:
                 raise ValueError(f"consecutive {current!r} messages are not allowed")
         if any(not m.content.strip() for m in messages):

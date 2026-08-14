@@ -16,13 +16,20 @@ from pathlib import Path
 
 from common.config import load_config
 from common.logging import get_logger
-from evaluation.metrics import aggregate, chrf, contains_all, khmer_fluency, latency_percentiles, token_f1
+from evaluation.metrics import (
+    aggregate,
+    chrf,
+    contains_all,
+    khmer_fluency,
+    latency_percentiles,
+    token_f1,
+)
 from evaluation.runner import build_runner, load_golden, stamp_report, write_report
-from evaluation.schemas import EvalCategory, EvalReport, GoldenItem, ItemResult, ModelAnswer
+from evaluation.schemas import EvalReport, GoldenItem, ItemResult, ModelAnswer
 
 log = get_logger(__name__)
 
-__all__ = ["evaluate_language", "score_item", "main"]
+__all__ = ["evaluate_language", "main", "score_item"]
 
 
 def score_item(item: GoldenItem, answer: ModelAnswer) -> ItemResult:
@@ -72,9 +79,7 @@ def evaluate_language(
     thresholds: dict[str, float] | None = None,
 ) -> EvalReport:
     items = load_golden(golden_path)
-    runner = build_runner(
-        backend, model=model, base_url=base_url, api_key=api_key, answers=answers
-    )
+    runner = build_runner(backend, model=model, base_url=base_url, api_key=api_key, answers=answers)
     try:
         results = [score_item(item, runner.answer(item)) for item in items]
     finally:

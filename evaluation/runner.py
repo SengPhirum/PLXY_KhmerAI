@@ -23,7 +23,7 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
-from common.io import read_jsonl, write_json, atomic_write_text
+from common.io import atomic_write_text, read_jsonl, write_json
 from common.logging import get_logger
 from common.paths import EVAL_GOLDEN_DIR, EVAL_REPORT_DIR, ensure_dir
 from common.versions import git_commit, load_versions
@@ -32,13 +32,13 @@ from evaluation.schemas import EvalReport, GoldenItem, ModelAnswer
 log = get_logger(__name__)
 
 __all__ = [
-    "Runner",
-    "OllamaRunner",
     "ApiRunner",
+    "OllamaRunner",
+    "Runner",
     "StaticRunner",
+    "build_runner",
     "load_golden",
     "write_report",
-    "build_runner",
 ]
 
 
@@ -55,7 +55,7 @@ def load_golden(path: str | Path) -> list[GoldenItem]:
         try:
             row.setdefault("id", f"{target.stem}-{index:04d}")
             items.append(GoldenItem.model_validate(row))
-        except Exception as exc:  # noqa: BLE001 - a bad row is reported, not fatal
+        except Exception as exc:
             log.error(
                 "evaluation.golden.invalid_row",
                 extra={"file": str(target), "row": index, "error": str(exc)},
@@ -97,7 +97,7 @@ class OllamaRunner(Runner):
         options: dict[str, Any] | None = None,
         timeout: float = 180.0,
     ) -> None:
-        import httpx  # noqa: PLC0415
+        import httpx
 
         self.model = model
         self.system_prompt = system_prompt
@@ -124,7 +124,7 @@ class OllamaRunner(Runner):
             )
             response.raise_for_status()
             body = response.json()
-        except Exception as exc:  # noqa: BLE001 - one failed item must not stop the run
+        except Exception as exc:
             return ModelAnswer(
                 item_id=item.id,
                 answer="",
@@ -159,12 +159,10 @@ class ApiRunner(Runner):
         api_key: str = "",
         timeout: float = 180.0,
     ) -> None:
-        import httpx  # noqa: PLC0415
+        import httpx
 
         headers = {"X-API-Key": api_key} if api_key else {}
-        self._client = httpx.Client(
-            base_url=base_url.rstrip("/"), timeout=timeout, headers=headers
-        )
+        self._client = httpx.Client(base_url=base_url.rstrip("/"), timeout=timeout, headers=headers)
 
     def answer(self, item: GoldenItem) -> ModelAnswer:
         conversation_id = f"eval-{item.id}"[:60]
@@ -192,7 +190,7 @@ class ApiRunner(Runner):
             )
             response.raise_for_status()
             body = response.json()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return ModelAnswer(
                 item_id=item.id,
                 answer="",
@@ -267,7 +265,9 @@ def build_runner(
     raise ValueError(f"unknown runner backend {kind!r}; expected ollama, api or static")
 
 
-def write_report(report: EvalReport, name: str, *, directory: Path | None = None) -> tuple[Path, Path]:
+def write_report(
+    report: EvalReport, name: str, *, directory: Path | None = None
+) -> tuple[Path, Path]:
     """Write ``<name>.json`` and ``<name>.md``.  Returns both paths."""
     target = ensure_dir(directory or EVAL_REPORT_DIR)
     json_path = target / f"{name}.json"

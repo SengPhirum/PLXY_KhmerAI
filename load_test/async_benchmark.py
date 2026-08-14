@@ -21,7 +21,6 @@ import argparse
 import asyncio
 import json
 import random
-import statistics
 import sys
 import time
 from dataclasses import dataclass, field
@@ -154,7 +153,10 @@ async def _one_request(
         elapsed = (time.perf_counter() - started) * 1000
         if response.status_code >= 400:
             return Sample(
-                False, response.status_code, elapsed, scenario=scenario.name,
+                False,
+                response.status_code,
+                elapsed,
+                scenario=scenario.name,
                 error=f"HTTP {response.status_code}",
             )
         body = response.json()
@@ -165,7 +167,7 @@ async def _one_request(
             tokens=int((body.get("usage") or {}).get("completion_tokens", 0) or 0),
             scenario=scenario.name,
         )
-    except Exception as exc:  # noqa: BLE001 - a failed request is data
+    except Exception as exc:
         return Sample(
             False,
             0,
@@ -185,7 +187,7 @@ async def _client_loop(
     start_delay: float,
     think_time: float,
 ) -> None:
-    rng = random.Random(1000 + client_id)  # noqa: S311 - load shaping, not crypto
+    rng = random.Random(1000 + client_id)
     if start_delay:
         await asyncio.sleep(start_delay)
     while time.monotonic() < deadline:
@@ -204,7 +206,7 @@ async def run(
     api_key: str,
     think_time: float,
 ) -> dict[str, Any]:
-    import httpx  # noqa: PLC0415
+    import httpx
 
     scenarios = load_scenarios()
     samples: list[Sample] = []
@@ -256,7 +258,9 @@ def summarise(
         if sample.ok:
             bucket["latencies"].append(sample.latency_ms)
     for bucket in by_scenario.values():
-        bucket["success_rate"] = round(bucket["ok"] / bucket["requests"], 4) if bucket["requests"] else 0.0
+        bucket["success_rate"] = (
+            round(bucket["ok"] / bucket["requests"], 4) if bucket["requests"] else 0.0
+        )
         bucket["latency_ms"] = latency_percentiles(bucket.pop("latencies"))
 
     ttfts = [s.ttft_ms for s in ok if s.ttft_ms > 0]
@@ -315,7 +319,11 @@ def main(argv: list[str] | None = None) -> int:
         print(str(exc), file=sys.stderr)
         return 1
 
-    output = Path(args.output) if args.output else _REPO_ROOT / "reports" / f"load_test_{args.pattern}_{args.clients}c.json"
+    output = (
+        Path(args.output)
+        if args.output
+        else _REPO_ROOT / "reports" / f"load_test_{args.pattern}_{args.clients}c.json"
+    )
     write_json(output, report)
     print(json.dumps(report, indent=2, ensure_ascii=False))
     print(f"\nwritten: {output}")

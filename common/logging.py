@@ -27,13 +27,13 @@ from typing import Any
 from security.data_redaction import redact
 
 __all__ = [
-    "configure_logging",
-    "get_logger",
-    "request_id_var",
-    "conversation_id_var",
-    "new_request_id",
-    "bind_request",
     "JsonFormatter",
+    "bind_request",
+    "configure_logging",
+    "conversation_id_var",
+    "get_logger",
+    "new_request_id",
+    "request_id_var",
 ]
 
 request_id_var: contextvars.ContextVar[str] = contextvars.ContextVar("request_id", default="-")
@@ -43,10 +43,29 @@ conversation_id_var: contextvars.ContextVar[str] = contextvars.ContextVar(
 
 _RESERVED = frozenset(
     {
-        "args", "asctime", "created", "exc_info", "exc_text", "filename", "funcName",
-        "levelname", "levelno", "lineno", "module", "msecs", "message", "msg", "name",
-        "pathname", "process", "processName", "relativeCreated", "stack_info",
-        "thread", "threadName", "taskName",
+        "args",
+        "asctime",
+        "created",
+        "exc_info",
+        "exc_text",
+        "filename",
+        "funcName",
+        "levelname",
+        "levelno",
+        "lineno",
+        "module",
+        "msecs",
+        "message",
+        "msg",
+        "name",
+        "pathname",
+        "process",
+        "processName",
+        "relativeCreated",
+        "stack_info",
+        "thread",
+        "threadName",
+        "taskName",
     }
 )
 
@@ -58,7 +77,9 @@ def new_request_id() -> str:
 
 
 @contextmanager
-def bind_request(request_id: str | None = None, conversation_id: str | None = None) -> Iterator[str]:
+def bind_request(
+    request_id: str | None = None, conversation_id: str | None = None
+) -> Iterator[str]:
     """Bind a request/conversation ID for the duration of the block."""
     rid = request_id or new_request_id()
     token_r = request_id_var.set(rid)
@@ -161,7 +182,9 @@ def configure_logging(
     for existing in list(root.handlers):
         root.removeHandler(existing)
     root.addHandler(handler)
-    root.setLevel(resolved_level if isinstance(resolved_level, int) else str(resolved_level).upper())
+    root.setLevel(
+        resolved_level if isinstance(resolved_level, int) else str(resolved_level).upper()
+    )
 
     # Uvicorn duplicates records through its own handlers; route them to ours.
     for noisy in ("uvicorn", "uvicorn.error", "uvicorn.access", "httpx", "httpcore"):

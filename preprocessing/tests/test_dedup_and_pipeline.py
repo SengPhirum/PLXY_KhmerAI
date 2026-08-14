@@ -144,8 +144,10 @@ def test_company_policy_keeps_the_official_contact_details() -> None:
 def test_pre_upload_report_blocks_a_dirty_dataset(tmp_path: Path) -> None:
     dirty = tmp_path / "train.jsonl"
     dirty.write_text(
-        json.dumps({"text": 'token = "ghp_" + "A"*40'}, ensure_ascii=False) + "\n"
-        + json.dumps({"text": SAMPLE_DOCUMENT_KM}, ensure_ascii=False) + "\n",
+        json.dumps({"text": 'token = "ghp_" + "A"*40'}, ensure_ascii=False)
+        + "\n"
+        + json.dumps({"text": SAMPLE_DOCUMENT_KM}, ensure_ascii=False)
+        + "\n",
         encoding="utf-8",
     )
     report = build_pre_upload_report([dirty])
@@ -153,7 +155,9 @@ def test_pre_upload_report_blocks_a_dirty_dataset(tmp_path: Path) -> None:
     assert "files" in report and report["files"][0]["sha256"]
 
     clean = tmp_path / "clean.jsonl"
-    clean.write_text(json.dumps({"text": SAMPLE_DOCUMENT_KM}, ensure_ascii=False) + "\n", encoding="utf-8")
+    clean.write_text(
+        json.dumps({"text": SAMPLE_DOCUMENT_KM}, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     assert build_pre_upload_report([clean])["approved"] is True
 
 
@@ -162,7 +166,11 @@ def test_pipeline_end_to_end(tmp_path: Path) -> None:
     rows = [
         {"id": "1", "source": "wiki", "text": SAMPLE_DOCUMENT_KM},
         {"id": "2", "source": "wiki", "text": SAMPLE_DOCUMENT_KM},  # exact dup
-        {"id": "3", "source": "web", "text": "<p>" + SAMPLE_DOCUMENT_KM + "</p><footer>© 2026</footer>"},
+        {
+            "id": "3",
+            "source": "web",
+            "text": "<p>" + SAMPLE_DOCUMENT_KM + "</p><footer>© 2026</footer>",
+        },
         {
             "id": "4",
             "source": "web",
@@ -174,7 +182,9 @@ def test_pipeline_end_to_end(tmp_path: Path) -> None:
         {"id": "5", "source": "web", "text": DIFFERENT + " " + DIFFERENT + " " + DIFFERENT},
     ]
     src = tmp_path / "raw.jsonl"
-    src.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
+    src.write_text(
+        "\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8"
+    )
 
     out = tmp_path / "clean.jsonl"
     report = tmp_path / "report.json"
@@ -196,9 +206,13 @@ def test_pipeline_end_to_end(tmp_path: Path) -> None:
 
 
 def test_pipeline_is_deterministic(tmp_path: Path) -> None:
-    rows = [{"id": str(i), "source": "s", "text": SAMPLE_DOCUMENT_KM + f" ចំណាំទី {i}។"} for i in range(5)]
+    rows = [
+        {"id": str(i), "source": "s", "text": SAMPLE_DOCUMENT_KM + f" ចំណាំទី {i}។"} for i in range(5)
+    ]
     src = tmp_path / "raw.jsonl"
-    src.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
+    src.write_text(
+        "\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8"
+    )
     first = run_pipeline(src, tmp_path / "a.jsonl")
     second = run_pipeline(src, tmp_path / "b.jsonl")
     assert (tmp_path / "a.jsonl").read_bytes() == (tmp_path / "b.jsonl").read_bytes()

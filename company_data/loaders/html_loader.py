@@ -16,7 +16,7 @@ from company_data.loaders.base import LoadedDocument, check_file
 from company_data.loaders.text_loader import _read_text
 from preprocessing.html_cleanup import clean_web_text
 
-__all__ = ["load_html", "extract_meta"]
+__all__ = ["extract_meta", "load_html"]
 
 _TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
 _META_RE = re.compile(r"<meta\s+([^>]+?)/?>", re.IGNORECASE)
@@ -26,9 +26,22 @@ _LANG_RE = re.compile(r"<html[^>]*\blang\s*=\s*[\"']?([\w-]+)", re.IGNORECASE)
 # Meta-tag names that map directly onto CompanyDocument fields.
 _CANONICAL_META_FIELDS = frozenset(
     {
-        "document_title", "product_id", "product_name", "service_id", "service_name",
-        "category", "subcategory", "version", "effective_date", "expiration_date",
-        "language", "confidentiality", "access_level", "status", "owner", "source_url",
+        "document_title",
+        "product_id",
+        "product_name",
+        "service_id",
+        "service_name",
+        "category",
+        "subcategory",
+        "version",
+        "effective_date",
+        "expiration_date",
+        "language",
+        "confidentiality",
+        "access_level",
+        "status",
+        "owner",
+        "source_url",
     }
 )
 

@@ -29,14 +29,18 @@ from common.io import atomic_write_text, read_jsonl  # noqa: E402
 def load_rows(patterns: list[str]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for pattern in patterns:
-        for path in sorted(glob.glob(pattern)):
+        # `glob.glob` (not Path.glob) because the CLI accepts a full pattern
+        # such as `reports/**/summary-*.jsonl`, not a root plus a relative pattern.
+        for path in sorted(glob.glob(pattern)):  # noqa: PTH207
             rows.extend(read_jsonl(path, skip_invalid=True))
     return rows
 
 
-def evaluate(rows: list[dict[str, Any]], slo: dict[str, Any], target_clients: int) -> dict[str, Any]:
-    latency = (slo.get("latency") or {})
-    availability = (slo.get("availability") or {})
+def evaluate(
+    rows: list[dict[str, Any]], slo: dict[str, Any], target_clients: int
+) -> dict[str, Any]:
+    latency = slo.get("latency") or {}
+    availability = slo.get("availability") or {}
     ttft_limit_ms = float(latency.get("time_to_first_token_p95_seconds", 2.5)) * 1000
     p95_limit_ms = float(latency.get("end_to_end_p95_seconds", 12.0)) * 1000
     success_floor = float(availability.get("api_success_rate", 0.995))
@@ -60,7 +64,10 @@ def evaluate(rows: list[dict[str, Any]], slo: dict[str, Any], target_clients: in
 
     acceptable = [r for r in scored if r["acceptable"]]
     winner = (
-        max(acceptable, key=lambda r: (r.get("requests_per_second", 0.0), -(r.get("latency_p95_ms") or 0)))
+        max(
+            acceptable,
+            key=lambda r: (r.get("requests_per_second", 0.0), -(r.get("latency_p95_ms") or 0)),
+        )
         if acceptable
         else None
     )
@@ -107,7 +114,13 @@ def to_markdown(analysis: dict[str, Any], rows: list[dict[str, Any]]) -> str:
         "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in sorted(
-        rows, key=lambda r: (str(r.get("model")), r.get("context", 0), r.get("ollama_num_parallel", 0), r.get("clients", 0))
+        rows,
+        key=lambda r: (
+            str(r.get("model")),
+            r.get("context", 0),
+            r.get("ollama_num_parallel", 0),
+            r.get("clients", 0),
+        ),
     ):
         lines.append(
             f"| {row.get('model')} | {row.get('ollama_num_parallel')} | {row.get('context')} | "

@@ -22,7 +22,7 @@ from collections import Counter
 from collections.abc import Sequence
 from typing import Any
 
-from preprocessing.khmer_detection import TextLanguage, detect_language, profile_text
+from preprocessing.khmer_detection import TextLanguage, detect_language
 from preprocessing.khmer_script import (
     CharClass,
     classify_char,
@@ -34,17 +34,17 @@ from preprocessing.language_mixing import SpanKind, extract_protected_spans
 from preprocessing.unicode_normalization import normalize_for_hashing
 
 __all__ = [
-    "recall_at_k",
+    "aggregate",
+    "chrf",
+    "contains_all",
+    "exact_match",
+    "khmer_fluency",
+    "latency_percentiles",
     "mrr",
     "ndcg_at_k",
     "precision_at_k",
+    "recall_at_k",
     "token_f1",
-    "chrf",
-    "exact_match",
-    "contains_all",
-    "khmer_fluency",
-    "latency_percentiles",
-    "aggregate",
 ]
 
 
@@ -159,7 +159,8 @@ def _orphan_mark_ratio(text: str) -> float:
     orphans = sum(
         1
         for c in clusters
-        if classify_char(c[0]) in (CharClass.VOWEL, CharClass.SIGN, CharClass.SHIFTER, CharClass.COENG)
+        if classify_char(c[0])
+        in (CharClass.VOWEL, CharClass.SIGN, CharClass.SHIFTER, CharClass.COENG)
     )
     return orphans / len(clusters)
 
@@ -214,7 +215,9 @@ def khmer_fluency(text: str, *, source: str = "", expect_language: str = "km") -
     issues: list[str] = []
 
     correct_language = (
-        str(language).startswith("khmer") if expect_language == "km" else language is TextLanguage.ENGLISH
+        str(language).startswith("khmer")
+        if expect_language == "km"
+        else language is TextLanguage.ENGLISH
     )
     if not correct_language:
         issues.append(f"wrong_language:{language}")

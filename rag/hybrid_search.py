@@ -25,7 +25,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal
 
-__all__ = ["FusionConfig", "reciprocal_rank_fusion", "weighted_fusion", "fuse"]
+__all__ = ["FusionConfig", "fuse", "reciprocal_rank_fusion", "weighted_fusion"]
 
 FusionStrategy = Literal["rrf", "weighted", "dense_only", "lexical_only"]
 
@@ -71,7 +71,11 @@ def reciprocal_rank_fusion(
 
 
 def weighted_fusion(
-    dense: dict[str, float], lexical: dict[str, float], *, dense_weight: float, lexical_weight: float
+    dense: dict[str, float],
+    lexical: dict[str, float],
+    *,
+    dense_weight: float,
+    lexical_weight: float,
 ) -> dict[str, float]:
     """Min-max normalise each list, then take the weighted sum over their union."""
     dense_norm = _min_max(dense)

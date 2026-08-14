@@ -19,24 +19,64 @@ from html.parser import HTMLParser
 from typing import Final
 
 __all__ = [
-    "strip_html",
-    "remove_boilerplate",
-    "clean_web_text",
     "BOILERPLATE_PATTERNS",
+    "clean_web_text",
+    "remove_boilerplate",
+    "strip_html",
 ]
 
 _DROP_ELEMENTS: Final = frozenset(
     {
-        "script", "style", "noscript", "svg", "canvas", "iframe", "object",
-        "embed", "template", "head", "nav", "footer", "aside", "form",
-        "button", "select", "option", "input", "textarea", "video", "audio",
+        "script",
+        "style",
+        "noscript",
+        "svg",
+        "canvas",
+        "iframe",
+        "object",
+        "embed",
+        "template",
+        "head",
+        "nav",
+        "footer",
+        "aside",
+        "form",
+        "button",
+        "select",
+        "option",
+        "input",
+        "textarea",
+        "video",
+        "audio",
     }
 )
 _BLOCK_ELEMENTS: Final = frozenset(
     {
-        "p", "div", "br", "hr", "li", "tr", "td", "th", "section", "article",
-        "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "table",
-        "ul", "ol", "dl", "dd", "dt", "figcaption",
+        "p",
+        "div",
+        "br",
+        "hr",
+        "li",
+        "tr",
+        "td",
+        "th",
+        "section",
+        "article",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "blockquote",
+        "pre",
+        "table",
+        "ul",
+        "ol",
+        "dl",
+        "dd",
+        "dt",
+        "figcaption",
     }
 )
 # Navigation-ish containers identified by attribute, not tag.
@@ -89,9 +129,12 @@ class _TextExtractor(HTMLParser):
     @staticmethod
     def _looks_like_chrome(attrs: list[tuple[str, str | None]]) -> bool:
         for name, value in attrs:
-            if name in ("class", "id", "role", "aria-label") and value:
-                if _DROP_ATTR_HINTS.search(value):
-                    return True
+            if (
+                name in ("class", "id", "role", "aria-label")
+                and value
+                and _DROP_ATTR_HINTS.search(value)
+            ):
+                return True
             if name == "role" and value in ("navigation", "banner", "complementary"):
                 return True
         return False
@@ -103,7 +146,7 @@ class _TextExtractor(HTMLParser):
 def _strip_with_bs4(html: str) -> str | None:
     """Use BeautifulSoup when installed - it recovers from broken markup."""
     try:
-        from bs4 import BeautifulSoup  # noqa: PLC0415 - optional dependency
+        from bs4 import BeautifulSoup
     except ImportError:
         return None
 
@@ -129,7 +172,7 @@ def strip_html(html: str) -> str:
         try:
             parser.feed(html)
             parser.close()
-        except Exception:  # noqa: BLE001 - malformed markup must not kill a corpus run
+        except Exception:
             text = re.sub(r"<[^>]+>", " ", html)
         else:
             text = parser.text()

@@ -31,11 +31,11 @@ from preprocessing.khmer_script import (
 )
 
 __all__ = [
-    "TextLanguage",
     "ScriptProfile",
-    "profile_text",
+    "TextLanguage",
     "detect_language",
     "khmer_ratio",
+    "profile_text",
 ]
 
 

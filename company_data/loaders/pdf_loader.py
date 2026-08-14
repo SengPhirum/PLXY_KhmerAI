@@ -22,12 +22,18 @@ import re
 
 from company_data.loaders.base import LoadedDocument, LoaderError, check_file, require
 
-__all__ = ["load_pdf", "LEGACY_KHMER_FONTS"]
+__all__ = ["LEGACY_KHMER_FONTS", "load_pdf"]
 
 # Font families that encode Khmer in a non-Unicode private mapping.
 LEGACY_KHMER_FONTS = (
-    "limon", "abc-zerk", "abczerk", "khek", "kh-", "preahvihear-legacy",
-    "truth", "sbbic-legacy",
+    "limon",
+    "abc-zerk",
+    "abczerk",
+    "khek",
+    "kh-",
+    "preahvihear-legacy",
+    "truth",
+    "sbbic-legacy",
 )
 _KHMER_RE = re.compile(r"[ក-៿]")
 _MOJIBAKE_HINT = re.compile(r"[·¬¤¦§¨©ª«¯°±²³´µ¶¸¹º»¼½¾]{3,}")
@@ -53,7 +59,7 @@ def _page_fonts(page: object) -> set[str]:
             name = obj.get("/BaseFont")
             if name:
                 fonts.add(str(name).lstrip("/"))
-    except Exception:  # noqa: BLE001 - font metadata is optional, never fatal
+    except Exception:
         return fonts
     return fonts
 
@@ -71,23 +77,20 @@ def load_pdf(
 
     try:
         reader = pypdf.PdfReader(str(target))
-        if reader.is_encrypted:
-            if reader.decrypt(password or "") == 0:
-                raise LoaderError(f"{target} is password protected")
+        if reader.is_encrypted and reader.decrypt(password or "") == 0:
+            raise LoaderError(f"{target} is password protected")
     except LoaderError:
         raise
-    except Exception as exc:  # noqa: BLE001 - pypdf raises many exception types
+    except Exception as exc:
         raise LoaderError(f"could not open PDF {target}: {exc}") from exc
 
     doc_info = {}
     try:
         if reader.metadata:
             doc_info = {
-                str(k).lstrip("/"): str(v)
-                for k, v in reader.metadata.items()
-                if v is not None
+                str(k).lstrip("/"): str(v) for k, v in reader.metadata.items() if v is not None
             }
-    except Exception:  # noqa: BLE001
+    except Exception:
         doc_info = {}
 
     pages: list[tuple[int, str, set[str]]] = []
@@ -95,7 +98,7 @@ def load_pdf(
     for number, page in enumerate(reader.pages, start=1):
         try:
             text = page.extract_text() or ""
-        except Exception:  # noqa: BLE001 - one bad page must not kill the document
+        except Exception:
             failed_pages.append(number)
             continue
         pages.append((number, text, _page_fonts(page)))

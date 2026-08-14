@@ -21,11 +21,11 @@ from dataclasses import dataclass, field
 from typing import Final
 
 __all__ = [
+    "DEFAULT_PATTERNS",
+    "KHMER_DIGIT_TRANSLATION",
     "RedactionResult",
     "Redactor",
     "redact",
-    "DEFAULT_PATTERNS",
-    "KHMER_DIGIT_TRANSLATION",
 ]
 
 # Khmer numerals ០-៩ so a phone number typed in Khmer digits is still matched.
@@ -41,7 +41,10 @@ DEFAULT_PATTERNS: Final[tuple[tuple[str, str], ...]] = (
     ("openai_key", r"\bsk-[A-Za-z0-9_-]{20,}\b"),
     ("hf_token", r"\bhf_[A-Za-z0-9]{30,}\b"),
     ("jwt", r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b"),
-    ("private_key_block", r"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----[\s\S]*?-----END (?:[A-Z ]+ )?PRIVATE KEY-----"),
+    (
+        "private_key_block",
+        r"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----[\s\S]*?-----END (?:[A-Z ]+ )?PRIVATE KEY-----",
+    ),
     # A leading `[A-Za-z0-9_]*` is required, not decorative: real configuration
     # keys are `db_password`, `ADMIN_API_KEY`, `service_auth_token`, and a plain
     # `\bpassword\b` never matches those because `_` is a word character.
@@ -55,7 +58,10 @@ DEFAULT_PATTERNS: Final[tuple[tuple[str, str], ...]] = (
     # --- contact / identity -------------------------------------------------
     ("email", r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b"),
     ("cambodia_phone_intl", r"(?:\+?855[\s\-.]?)(?:0?[1-9]\d{1,2})[\s\-.]?\d{3}[\s\-.]?\d{3,4}\b"),
-    ("cambodia_phone_local", r"\b0(?:1[0-9]|2[0-9]|3[1-9]|6[0-9]|7[0-9]|8[0-9]|9[0-9])[\s\-.]?\d{3}[\s\-.]?\d{3,4}\b"),
+    (
+        "cambodia_phone_local",
+        r"\b0(?:1[0-9]|2[0-9]|3[1-9]|6[0-9]|7[0-9]|8[0-9]|9[0-9])[\s\-.]?\d{3}[\s\-.]?\d{3,4}\b",
+    ),
     ("khmer_national_id", r"\b\d{9}\b(?=\s*(?:ID|អត្តសញ្ញាណប័ណ្ណ|លេខអត្តសញ្ញាណ))"),
     ("credit_card", r"\b(?:\d[ \-]?){13,19}\b"),
     ("ip_address", r"\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b"),
@@ -98,9 +104,7 @@ class Redactor:
     ) -> None:
         keep = set(keep_kinds or ())
         self._patterns = [
-            (kind, re.compile(pattern))
-            for kind, pattern in patterns
-            if kind not in keep
+            (kind, re.compile(pattern)) for kind, pattern in patterns if kind not in keep
         ]
         self._allowlist = {a.lower() for a in (allowlist or ())}
 

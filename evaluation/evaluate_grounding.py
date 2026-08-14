@@ -30,7 +30,7 @@ from rag.vector_store import LocalVectorStore
 
 log = get_logger(__name__)
 
-__all__ = ["evaluate_grounding", "score_item", "main"]
+__all__ = ["evaluate_grounding", "main", "score_item"]
 
 
 def _load_retriever(index_dir: str | Path) -> Retriever:
@@ -40,9 +40,7 @@ def _load_retriever(index_dir: str | Path) -> Retriever:
     return Retriever(store, embedder, index_version=directory.name)
 
 
-def score_item(
-    item: GoldenItem, answer: ModelAnswer, chunks: list[RetrievedChunk]
-) -> ItemResult:
+def score_item(item: GoldenItem, answer: ModelAnswer, chunks: list[RetrievedChunk]) -> ItemResult:
     result = ItemResult(
         item_id=item.id,
         category=item.category,
@@ -125,7 +123,9 @@ def evaluate_grounding(
         results=results,
         aggregate=aggregate([r.scores for r in results]),
     )
-    unsupported = sum(1 for r in results if any(f.startswith("unsupported_claims") for f in r.failures))
+    unsupported = sum(
+        1 for r in results if any(f.startswith("unsupported_claims") for f in r.failures)
+    )
     report.aggregate["unsupported_claim_rate"] = round(
         unsupported / len(results) if results else 0.0, 4
     )

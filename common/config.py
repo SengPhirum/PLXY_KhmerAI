@@ -27,12 +27,12 @@ from common.paths import PROJECT_ROOT
 
 __all__ = [
     "ConfigError",
-    "load_config",
-    "load_yaml",
+    "clear_cache",
     "deep_merge",
     "expand_env",
     "get_path",
-    "clear_cache",
+    "load_config",
+    "load_yaml",
 ]
 
 _ENV_PATTERN = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}")

@@ -155,9 +155,7 @@ def built_index(
 
 
 @pytest.fixture
-def retriever(
-    built_index: tuple[LocalVectorStore, str], embedder: HashingEmbedder
-) -> Retriever:
+def retriever(built_index: tuple[LocalVectorStore, str], embedder: HashingEmbedder) -> Retriever:
     store, version = built_index
     # The hashing embedder produces lower absolute similarities than a real
     # model, so the confidence floor is lowered for tests.  Threshold behaviour

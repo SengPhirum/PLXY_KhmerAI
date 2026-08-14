@@ -34,12 +34,12 @@ from training.common import (
 
 log = get_logger(__name__)
 
-__all__ = ["main", "run_cpt", "should_accept_cpt", "REGRESSION_LIMITS"]
+__all__ = ["REGRESSION_LIMITS", "main", "run_cpt", "should_accept_cpt"]
 
 # Early-stopping / acceptance rule (§Phase 6).  A CPT checkpoint is rejected
 # unless Khmer improves materially AND nothing else regresses materially.
 REGRESSION_LIMITS: dict[str, float] = {
-    "khmer_perplexity_improvement_min": 0.05,   # >= 5% relative improvement
+    "khmer_perplexity_improvement_min": 0.05,  # >= 5% relative improvement
     "english_perplexity_regression_max": 0.03,  # <= 3% relative degradation
     "reasoning_regression_max": 0.02,
     "instruction_following_regression_max": 0.02,
@@ -93,10 +93,9 @@ def should_accept_cpt(before: dict[str, float], after: dict[str, float]) -> tupl
 
 def run_cpt(config: TrainingConfig, *, streaming: bool = True) -> dict[str, Any]:
     """Execute continued pretraining.  Requires ``requirements/training.txt``."""
-    import torch  # noqa: PLC0415
-    from datasets import load_dataset  # noqa: PLC0415
-    from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training  # noqa: PLC0415
-    from transformers import (  # noqa: PLC0415
+    import torch
+    from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+    from transformers import (
         AutoModelForCausalLM,
         AutoTokenizer,
         BitsAndBytesConfig,
@@ -104,6 +103,8 @@ def run_cpt(config: TrainingConfig, *, streaming: bool = True) -> dict[str, Any]
         Trainer,
         TrainingArguments,
     )
+
+    from datasets import load_dataset
 
     set_seed(config.seed)
     output_dir = Path(config.output_dir)
@@ -266,7 +267,11 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 3
     write_json(Path(config.output_dir) / "cpt_manifest.json", manifest)
-    print(json.dumps({k: v for k, v in manifest.items() if k != "hyperparameters"}, indent=2, default=str))
+    print(
+        json.dumps(
+            {k: v for k, v in manifest.items() if k != "hyperparameters"}, indent=2, default=str
+        )
+    )
     return 0
 
 

@@ -27,7 +27,7 @@ if str(_REPO_ROOT) not in sys.path:
 
 from common.io import read_jsonl, write_json, write_jsonl  # noqa: E402
 from common.logging import get_logger  # noqa: E402
-from preprocessing.khmer_detection import TextLanguage, detect_language  # noqa: E402
+from preprocessing.khmer_detection import detect_language  # noqa: E402
 from preprocessing.language_mixing import SpanKind, extract_protected_spans  # noqa: E402
 from preprocessing.schemas import SFTRecord  # noqa: E402
 from preprocessing.unicode_normalization import normalize_for_hashing  # noqa: E402
@@ -36,7 +36,14 @@ from synthetic_data.review_schema import ReviewRecord, ReviewState, review_prior
 log = get_logger("synthetic.quality")
 
 _FACT_KINDS = frozenset(
-    {SpanKind.CURRENCY, SpanKind.MEASUREMENT, SpanKind.NUMBER, SpanKind.MODEL_NUMBER, SpanKind.URL, SpanKind.EMAIL}
+    {
+        SpanKind.CURRENCY,
+        SpanKind.MEASUREMENT,
+        SpanKind.NUMBER,
+        SpanKind.MODEL_NUMBER,
+        SpanKind.URL,
+        SpanKind.EMAIL,
+    }
 )
 _APOLOGY_MARKERS = ("សូមទោស", "សូមអភ័យទោស")
 
@@ -102,13 +109,14 @@ def check_sample(
             failures.append("synthetic_without_source")
         review.facts_supported = None
 
-    review.intent_correct = metadata.intent in {m.content and metadata.intent for m in record.messages} or True
+    review.intent_correct = (
+        metadata.intent in {m.content and metadata.intent for m in record.messages} or True
+    )
     review.duplicate = False
 
     if metadata.intent in ("unknown", "unsupported"):
         hedged = any(
-            marker in answer
-            for marker in ("មិនមានព័ត៌មាន", "ខ្ញុំមិនដឹង", "មិនអាចបញ្ជាក់", "សូមទាក់ទង")
+            marker in answer for marker in ("មិនមានព័ត៌មាន", "ខ្ញុំមិនដឹង", "មិនអាចបញ្ជាក់", "សូមទាក់ទង")
         )
         review.uncertainty_handled = hedged
         if not hedged:
@@ -122,7 +130,11 @@ def check_sample(
         failures.append("formatting")
 
     review.harmful_hallucination = bool(review.unsupported_claims) and metadata.intent in (
-        "pricing", "warranty", "policy", "refund", "returns"
+        "pricing",
+        "warranty",
+        "policy",
+        "refund",
+        "returns",
     )
     if review.harmful_hallucination:
         failures.append("HARMFUL_hallucination_on_a_high_risk_intent")
@@ -148,7 +160,7 @@ def run(
     for index, row in enumerate(read_jsonl(input_path, skip_invalid=True)):
         try:
             record = SFTRecord.model_validate(row)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             reasons["schema_invalid"] = reasons.get("schema_invalid", 0) + 1
             log.warning("synthetic.invalid_record", extra={"row": index, "error": str(exc)[:160]})
             continue
@@ -192,7 +204,10 @@ def run(
             "as DPO 'rejected' candidates."
         ),
     }
-    log.info("synthetic.quality_check.done", extra={k: report[k] for k in ("total", "accepted", "rejected")})
+    log.info(
+        "synthetic.quality_check.done",
+        extra={k: report[k] for k in ("total", "accepted", "rejected")},
+    )
     return report
 
 

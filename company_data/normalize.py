@@ -15,7 +15,7 @@ Responsibilities:
 from __future__ import annotations
 
 import re
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -90,7 +90,7 @@ class NormalizeOptions:
         self.pii_policy = pii_policy or PiiPolicy.for_company_public_docs()
         self.injection_block_threshold = injection_block_threshold
         self.infer_from_path = infer_from_path
-        self.as_of = as_of or datetime.now(timezone.utc).date()
+        self.as_of = as_of or datetime.now(UTC).date()
 
 
 def parse_date(value: Any) -> date | None:
@@ -106,7 +106,7 @@ def parse_date(value: Any) -> date | None:
         return None
     for fmt in _DATE_FORMATS:
         try:
-            return datetime.strptime(text, fmt).date()  # noqa: DTZ007 - a date has no timezone
+            return datetime.strptime(text, fmt).date()
         except ValueError:
             continue
     try:
@@ -247,9 +247,7 @@ def normalize_document(
         "injection_score": round(injection.score, 3),
         "injection_matches": [m.name for m in injection.matches],
         "source_metadata": {
-            k: v
-            for k, v in meta.items()
-            if k not in {"document_title", "title", "status", "state"}
+            k: v for k, v in meta.items() if k not in {"document_title", "title", "status", "state"}
         },
     }
 
@@ -266,7 +264,9 @@ def normalize_document(
         expiration_date=expires,
         language=str(_pick(meta, "language") or _detect_language(text)),
         source_path=loaded.source_path,
-        source_url=(str(_pick(meta, "source_url", "url")) if _pick(meta, "source_url", "url") else None),
+        source_url=(
+            str(_pick(meta, "source_url", "url")) if _pick(meta, "source_url", "url") else None
+        ),
         confidentiality=confidentiality,
         access_level=access_level,
         validation_status=validation_status,
@@ -288,7 +288,7 @@ def normalize_documents(
             continue
         try:
             out.append(normalize_document(item, options))
-        except Exception as exc:  # noqa: BLE001 - one bad file must not stop the batch
+        except Exception as exc:
             log.error(
                 "company_data.normalise_failed",
                 extra={"source": item.source_path, "error": str(exc)},

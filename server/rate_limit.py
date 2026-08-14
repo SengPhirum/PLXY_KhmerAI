@@ -20,7 +20,7 @@ import time
 from dataclasses import dataclass
 from typing import Protocol
 
-__all__ = ["RateLimitDecision", "RateLimiter", "InMemoryRateLimiter", "NullRateLimiter"]
+__all__ = ["InMemoryRateLimiter", "NullRateLimiter", "RateLimitDecision", "RateLimiter"]
 
 
 @dataclass(slots=True, frozen=True)
@@ -41,7 +41,7 @@ class RateLimitDecision:
             "X-RateLimit-Remaining": str(remaining),
         }
         if not self.allowed:
-            out["Retry-After"] = str(max(1, int(round(self.retry_after))))
+            out["Retry-After"] = str(max(1, round(self.retry_after)))
         return out
 
 
@@ -88,16 +88,12 @@ class InMemoryRateLimiter:
                 self._buckets[key] = bucket
 
             elapsed = now - bucket.updated_at
-            bucket.tokens = min(
-                self.capacity, bucket.tokens + elapsed * self.refill_per_second
-            )
+            bucket.tokens = min(self.capacity, bucket.tokens + elapsed * self.refill_per_second)
             bucket.updated_at = now
 
             if bucket.tokens >= cost:
                 bucket.tokens -= cost
-                return RateLimitDecision(
-                    allowed=True, remaining=bucket.tokens, limit=self.requests
-                )
+                return RateLimitDecision(allowed=True, remaining=bucket.tokens, limit=self.requests)
 
             deficit = cost - bucket.tokens
             retry_after = deficit / self.refill_per_second if self.refill_per_second else 60.0
@@ -141,8 +137,8 @@ class InMemoryRateLimiter:
 class NullRateLimiter:
     """Used when rate limiting is disabled."""
 
-    def check(self, key: str, cost: float = 1.0) -> RateLimitDecision:  # noqa: ARG002
+    def check(self, key: str, cost: float = 1.0) -> RateLimitDecision:
         return RateLimitDecision(allowed=True, remaining=float("inf"), limit=0)
 
-    def reset(self, key: str | None = None) -> None:  # noqa: ARG002
+    def reset(self, key: str | None = None) -> None:
         return

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, Literal
 
@@ -12,17 +12,17 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 __all__ = [
     "ChatRequest",
     "ChatResponse",
-    "SourceRef",
-    "StreamEvent",
-    "SearchRequest",
-    "SearchResponse",
-    "ReindexRequest",
-    "ReindexResponse",
-    "HealthResponse",
-    "ReadyResponse",
-    "ModelsResponse",
     "ErrorResponse",
     "EscalationReason",
+    "HealthResponse",
+    "ModelsResponse",
+    "ReadyResponse",
+    "ReindexRequest",
+    "ReindexResponse",
+    "SearchRequest",
+    "SearchResponse",
+    "SourceRef",
+    "StreamEvent",
 ]
 
 _CONVERSATION_ID = re.compile(r"^[A-Za-z0-9_\-:.]{1,64}$")
@@ -116,7 +116,7 @@ class ChatResponse(BaseModel):
     index_version: str = ""
     request_id: str = ""
     usage: dict[str, Any] = Field(default_factory=dict)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class StreamEvent(BaseModel):

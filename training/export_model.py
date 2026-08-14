@@ -23,7 +23,7 @@ import argparse
 import json
 import os
 import shutil
-import subprocess  # noqa: S404 - fixed argv, no shell
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -33,7 +33,7 @@ from common.logging import get_logger
 
 log = get_logger(__name__)
 
-__all__ = ["find_llama_cpp", "convert_to_gguf", "quantize", "export", "main"]
+__all__ = ["convert_to_gguf", "export", "find_llama_cpp", "main", "quantize"]
 
 # Practical levels for a 48 GB Mac Studio, smallest last.
 DEFAULT_QUANTIZATIONS = ("Q8_0", "Q5_K_M", "Q4_K_M")
@@ -90,7 +90,11 @@ def _run(argv: list[str], *, dry_run: bool) -> dict[str, Any]:
     if result.returncode != 0:
         log.error(
             "export.failed",
-            extra={"command": printable, "returncode": result.returncode, "stderr": result.stderr[-2000:]},
+            extra={
+                "command": printable,
+                "returncode": result.returncode,
+                "stderr": result.stderr[-2000:],
+            },
         )
     return {
         "command": printable,
@@ -186,7 +190,11 @@ def export(
     report["steps"].append({"stage": "convert_f16", **step})
     if f16_path.is_file():
         report["artifacts"].append(
-            {"level": "F16", "path": str(f16_path), "size_gb": round(f16_path.stat().st_size / 1e9, 2)}
+            {
+                "level": "F16",
+                "path": str(f16_path),
+                "size_gb": round(f16_path.stat().st_size / 1e9, 2),
+            }
         )
 
     for level in quantizations:

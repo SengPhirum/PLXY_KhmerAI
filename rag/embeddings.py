@@ -98,7 +98,7 @@ class EmbeddingBackend(ABC):
         """Cheap liveness probe used by ``GET /ready``."""
         try:
             vector = self.embed_query("សួស្តី")
-        except Exception as exc:  # noqa: BLE001 - reported, not raised, to the health endpoint
+        except Exception as exc:
             return False, f"{type(exc).__name__}: {exc}"
         if vector.shape[0] != self.dim:
             return False, f"dimension mismatch: got {vector.shape[0]}, expected {self.dim}"
@@ -158,7 +158,7 @@ class OllamaEmbedder(EmbeddingBackend):
 
     def _http(self) -> Any:
         if self._client is None:
-            import httpx  # noqa: PLC0415 - optional at import time
+            import httpx
 
             self._client = httpx.Client(base_url=self.base_url, timeout=self.timeout)
         return self._client
@@ -222,7 +222,7 @@ class SentenceTransformerEmbedder(EmbeddingBackend):
     def _load(self) -> Any:
         if self._model is None:
             try:
-                from sentence_transformers import SentenceTransformer  # noqa: PLC0415
+                from sentence_transformers import SentenceTransformer
             except ImportError as exc:  # pragma: no cover - optional dependency
                 raise RuntimeError(
                     "sentence-transformers is not installed. Either "

@@ -14,23 +14,23 @@ from contextlib import contextmanager
 from typing import Any
 
 __all__ = [
-    "METRICS_AVAILABLE",
     "CONTENT_TYPE",
-    "render",
-    "record_request",
-    "track_latency",
-    "observe_ttft",
-    "observe_tokens",
+    "METRICS_AVAILABLE",
     "observe_retrieval",
+    "observe_tokens",
+    "observe_ttft",
     "record_error",
     "record_escalation",
-    "record_unknown_answer",
-    "record_rate_limit",
-    "set_active",
-    "set_queued",
-    "record_injection_block",
     "record_guardrail_block",
+    "record_injection_block",
+    "record_rate_limit",
+    "record_request",
+    "record_unknown_answer",
+    "render",
+    "set_active",
     "set_index_info",
+    "set_queued",
+    "track_latency",
 ]
 
 try:  # pragma: no cover - exercised by whichever branch the environment takes
@@ -78,9 +78,7 @@ if METRICS_AVAILABLE:
     requests_total = Counter(
         "khmerai_requests_total", "API requests", ["endpoint", "status"], registry=REGISTRY
     )
-    requests_active = Gauge(
-        "khmerai_requests_active", "In-flight generations", registry=REGISTRY
-    )
+    requests_active = Gauge("khmerai_requests_active", "In-flight generations", registry=REGISTRY)
     requests_queued = Gauge(
         "khmerai_requests_queued", "Requests waiting for a generation slot", registry=REGISTRY
     )
@@ -137,7 +135,10 @@ if METRICS_AVAILABLE:
         registry=REGISTRY,
     )
     guardrail_blocks_total = Counter(
-        "khmerai_guardrail_blocks_total", "Answers blocked by guardrails", ["reason"], registry=REGISTRY
+        "khmerai_guardrail_blocks_total",
+        "Answers blocked by guardrails",
+        ["reason"],
+        registry=REGISTRY,
     )
     index_info = Info("khmerai_index", "Active knowledge index", registry=REGISTRY)
 else:  # pragma: no cover

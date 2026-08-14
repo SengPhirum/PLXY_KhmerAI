@@ -100,9 +100,7 @@ def test_07_unknown_product_is_not_invented(
 
 
 # 8
-def test_08_fake_promotion_is_refused(
-    client: TestClient, fake_ollama: FakeOllamaClient
-) -> None:
+def test_08_fake_promotion_is_refused(client: TestClient, fake_ollama: FakeOllamaClient) -> None:
     fake_ollama.script = "បាទ មានការបញ្ចុះតម្លៃ ៨០ ភាគរយ ខែនេះ។"
     body = _chat(client, "តើការបញ្ចុះតម្លៃ ៨០ ភាគរយ ខែនេះនៅមានទេ?")
     assert "៨០ ភាគរយ" not in body["answer"] or body["escalation_required"]
@@ -120,17 +118,40 @@ def test_09_conflicting_document_versions_are_exposed(client: TestClient, app_st
     from server.tests.conftest import PRICE_TEXT, WARRANTY_TEXT
 
     common = {
-        "status": "active", "confidentiality": "public", "access_level": "customer",
-        "validation_status": "valid", "effective_date": date(2026, 1, 1), "owner": "a",
+        "status": "active",
+        "confidentiality": "public",
+        "access_level": "customer",
+        "validation_status": "valid",
+        "effective_date": date(2026, 1, 1),
+        "owner": "a",
     }
     documents = [
-        CompanyDocument(document_title="ធានា", text=WARRANTY_TEXT, product_id="QN-4500A",
-                        category="warranty", version="2.0", source_path="a.md", **common),  # type: ignore[arg-type]
-        CompanyDocument(document_title="ធានា", text="ទូរទឹកកក QN-4500A មានការធានារយៈពេល ១២ ខែ។",
-                        product_id="QN-4500A", category="warranty", version="1.0",
-                        source_path="b.md", **common),  # type: ignore[arg-type]
-        CompanyDocument(document_title="តម្លៃ", text=PRICE_TEXT, product_id="QN-4500A",
-                        category="pricing", source_path="c.md", **common),  # type: ignore[arg-type]
+        CompanyDocument(
+            document_title="ធានា",
+            text=WARRANTY_TEXT,
+            product_id="QN-4500A",
+            category="warranty",
+            version="2.0",
+            source_path="a.md",
+            **common,
+        ),  # type: ignore[arg-type]
+        CompanyDocument(
+            document_title="ធានា",
+            text="ទូរទឹកកក QN-4500A មានការធានារយៈពេល ១២ ខែ។",
+            product_id="QN-4500A",
+            category="warranty",
+            version="1.0",
+            source_path="b.md",
+            **common,
+        ),  # type: ignore[arg-type]
+        CompanyDocument(
+            document_title="តម្លៃ",
+            text=PRICE_TEXT,
+            product_id="QN-4500A",
+            category="pricing",
+            source_path="c.md",
+            **common,
+        ),  # type: ignore[arg-type]
     ]
     import tempfile
     from pathlib import Path
@@ -165,7 +186,7 @@ def test_10_expired_document_is_not_served(client: TestClient) -> None:
 def test_11_missing_retrieval_result_forces_uncertainty(
     client: TestClient, fake_ollama: FakeOllamaClient, app_state: Any
 ) -> None:
-    app_state.rag._retriever.config.min_score_to_answer = 0.99  # noqa: SLF001
+    app_state.rag._retriever.config.min_score_to_answer = 0.99
     fake_ollama.script = "តម្លៃគឺ 1234 USD។"
     body = _chat(client, "តើតម្លៃរបស់ផលិតផលថ្មីប៉ុន្មាន?")
     assert "1234" not in body["answer"]
@@ -184,10 +205,7 @@ def test_12_multiturn_follow_up_keeps_context(
 
 # 13
 def test_13_complaint_is_handled(client: TestClient, fake_ollama: FakeOllamaClient) -> None:
-    fake_ollama.script = (
-        "សូមអភ័យទោសចំពោះការរង់ចាំ។ ខ្ញុំយល់ពីការខកចិត្តរបស់លោកអ្នក "
-        "ហើយនឹងពិនិត្យមើលករណីនេះជូនភ្លាមៗ។"
-    )
+    fake_ollama.script = "សូមអភ័យទោសចំពោះការរង់ចាំ។ ខ្ញុំយល់ពីការខកចិត្តរបស់លោកអ្នក ហើយនឹងពិនិត្យមើលករណីនេះជូនភ្លាមៗ។"
     body = _chat(client, "ទំនិញមកដល់យឺតពេលណាស់ ខ្ញុំមិនពេញចិត្តទេ")
     assert body["intent"] == "complaint"
     assert _has_khmer(body["answer"])
@@ -221,9 +239,16 @@ def test_17_concurrent_customers(client: TestClient) -> None:
     import concurrent.futures
 
     questions = [
-        "សួស្តី", "តម្លៃប៉ុន្មាន?", "ការធានាប៉ុន្មានឆ្នាំ?", "មានស្តុកទេ?",
-        "ដឹកជញ្ជូនប៉ុន្មានថ្ងៃ?", "តើ QN-4500A ធានាប៉ុន្មាន?", "សូមជួយបន្តិច",
-        "តើអាចប្តូរទំនិញបានទេ?", "ទូរទឹកកកខូច", "អរគុណ",
+        "សួស្តី",
+        "តម្លៃប៉ុន្មាន?",
+        "ការធានាប៉ុន្មានឆ្នាំ?",
+        "មានស្តុកទេ?",
+        "ដឹកជញ្ជូនប៉ុន្មានថ្ងៃ?",
+        "តើ QN-4500A ធានាប៉ុន្មាន?",
+        "សូមជួយបន្តិច",
+        "តើអាចប្តូរទំនិញបានទេ?",
+        "ទូរទឹកកកខូច",
+        "អរគុណ",
     ]
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as pool:
         statuses = list(
@@ -236,9 +261,7 @@ def test_17_concurrent_customers(client: TestClient) -> None:
 
 
 # 18
-def test_18_ollama_restart_is_survivable(
-    client: TestClient, fake_ollama: FakeOllamaClient
-) -> None:
+def test_18_ollama_restart_is_survivable(client: TestClient, fake_ollama: FakeOllamaClient) -> None:
     from server.ollama_client import OllamaUnavailable
 
     fake_ollama.raise_on_call = OllamaUnavailable("daemon restarting")
@@ -252,7 +275,9 @@ def test_18_ollama_restart_is_survivable(
 
 
 # 19
-def test_19_api_restart_preserves_no_customer_data(settings: Any, fake_ollama: FakeOllamaClient, monkeypatch: Any) -> None:
+def test_19_api_restart_preserves_no_customer_data(
+    settings: Any, fake_ollama: FakeOllamaClient, monkeypatch: Any
+) -> None:
     """Conversations are in-memory by default, so a restart forgets them (§privacy)."""
     import server.dependencies as deps
     from server.main import create_app
@@ -292,7 +317,14 @@ def test_21_backup_targets_exist(client: TestClient) -> None:
     """The backup script's targets must be real paths in this layout."""
     from common.paths import PROJECT_ROOT
 
-    for target in ("data/index", "data/manifests", "configs", "prompts", "evaluation/golden", "deployment"):
+    for target in (
+        "data/index",
+        "data/manifests",
+        "configs",
+        "prompts",
+        "evaluation/golden",
+        "deployment",
+    ):
         assert (PROJECT_ROOT / target).exists(), f"backup target missing: {target}"
 
 
@@ -300,9 +332,7 @@ def test_21_backup_targets_exist(client: TestClient) -> None:
 def test_22_streaming_interruption_releases_the_slot(
     client: TestClient, fake_ollama: FakeOllamaClient
 ) -> None:
-    with client.stream(
-        "POST", "/v1/chat/stream", json={"message": "តើតម្លៃប៉ុន្មាន?"}
-    ) as response:
+    with client.stream("POST", "/v1/chat/stream", json={"message": "តើតម្លៃប៉ុន្មាន?"}) as response:
         assert response.status_code == 200
         for _ in zip(response.iter_lines(), range(3), strict=False):
             pass  # abandon the stream early
@@ -327,17 +357,26 @@ def test_23_long_context_is_budgeted(client: TestClient, fake_ollama: FakeOllama
         )
     prompt_tokens = sum(estimate_tokens(m["content"]) for m in fake_ollama.calls[-1])
     budget = 8192  # settings.num_ctx in the test fixture
-    assert prompt_tokens < budget, f"prompt grew to {prompt_tokens} tokens, over the {budget} window"
+    assert prompt_tokens < budget, (
+        f"prompt grew to {prompt_tokens} tokens, over the {budget} window"
+    )
 
 
 # 24
-def test_24_rate_limit_behaviour(settings: Any, fake_ollama: FakeOllamaClient, monkeypatch: Any) -> None:
+def test_24_rate_limit_behaviour(
+    settings: Any, fake_ollama: FakeOllamaClient, monkeypatch: Any
+) -> None:
     import server.dependencies as deps
     from server.config import Settings
     from server.main import create_app
 
     limited = Settings(
-        **{**settings.model_dump(), "rate_limit_enabled": True, "rate_limit_requests": 60, "rate_limit_burst": 2}
+        **{
+            **settings.model_dump(),
+            "rate_limit_enabled": True,
+            "rate_limit_requests": 60,
+            "rate_limit_burst": 2,
+        }
     )
     original_build = deps.build_state
 

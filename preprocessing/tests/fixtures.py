@@ -36,11 +36,11 @@ CODE_SWITCHED: Final[tuple[str, ...]] = (
 
 # --- noisy / mistyped input the assistant must still understand ------------
 NOISY_KHMER: Final[tuple[str, ...]] = (
-    "តើទូរទឹកកកនេះតម្លៃប៉ុន្មាន",          # no final punctuation
-    "សូមជួយបន្តិច ខ្ញុំមិនយល់ទេ",            # informal, missing spaces
-    "warranty ប៉ុន្មានឆ្នាំ",                  # fragment, English first
-    "តម្លៃ?",                                # very short
-    "ខ្ញំុចង់ដឹងអំពីការធានា",                  # swapped nikahit/vowel (mis-typed)
+    "តើទូរទឹកកកនេះតម្លៃប៉ុន្មាន",  # no final punctuation
+    "សូមជួយបន្តិច ខ្ញុំមិនយល់ទេ",  # informal, missing spaces
+    "warranty ប៉ុន្មានឆ្នាំ",  # fragment, English first
+    "តម្លៃ?",  # very short
+    "ខ្ញំុចង់ដឹងអំពីការធានា",  # swapped nikahit/vowel (mis-typed)
 )
 
 # --- sequences that normalisation is expected to repair --------------------

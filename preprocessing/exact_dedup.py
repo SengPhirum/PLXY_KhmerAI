@@ -24,7 +24,7 @@ from typing import Any, Literal
 from common.hashing import sha256_text
 from preprocessing.unicode_normalization import normalize_for_hashing
 
-__all__ = ["DedupStats", "ExactDeduplicator", "dedupe_exact", "content_hash", "normalised_hash"]
+__all__ = ["DedupStats", "ExactDeduplicator", "content_hash", "dedupe_exact", "normalised_hash"]
 
 KeepPolicy = Literal["first", "best"]
 

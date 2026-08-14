@@ -30,7 +30,7 @@ from preprocessing.khmer_detection import TextLanguage, detect_language
 from preprocessing.language_mixing import SpanKind, extract_protected_spans
 from rag.chunking import estimate_tokens
 
-__all__ = ["Turn", "Conversation", "ConversationStore", "summarise_turns"]
+__all__ = ["Conversation", "ConversationStore", "Turn", "summarise_turns"]
 
 Role = Literal["user", "assistant"]
 
@@ -81,8 +81,7 @@ def summarise_turns(turns: list[Turn], *, max_chars: int = 600) -> str:
             if "?" in text or "តើ" in text or "ប៉ុន្មាន" in text:
                 questions.append(text[:120])
         elif any(
-            marker in turn.content
-            for marker in ("នឹងបញ្ជូន", "នឹងទាក់ទង", "បានបញ្ជូនទៅ", "escalat")
+            marker in turn.content for marker in ("នឹងបញ្ជូន", "នឹងទាក់ទង", "បានបញ្ជូនទៅ", "escalat")
         ):
             commitments.append(turn.content.strip()[:120])
 
@@ -139,9 +138,7 @@ class Conversation:
         sources: list[str] | None = None,
         escalated: bool = False,
     ) -> Turn:
-        turn = Turn(
-            role="assistant", content=content, grounded=grounded, sources=sources or []
-        )
+        turn = Turn(role="assistant", content=content, grounded=grounded, sources=sources or [])
         self.turns.append(turn)
         self.updated_at = turn.created_at
         if escalated:
@@ -166,9 +163,7 @@ class Conversation:
             self.summary = merged[-1200:]
         self.turns = self.turns[-max_recent_turns:]
 
-    def build_history(
-        self, *, max_turns: int, token_budget: int
-    ) -> list[dict[str, str]]:
+    def build_history(self, *, max_turns: int, token_budget: int) -> list[dict[str, str]]:
         """Chat-format history that fits ``token_budget``, newest kept first.
 
         Returns oldest-to-newest, which is what the chat template expects, but

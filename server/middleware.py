@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Awaitable, Callable
+from typing import ClassVar
 
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
@@ -17,9 +18,9 @@ from server.rate_limit import RateLimiter
 log = get_logger(__name__)
 
 __all__ = [
+    "RateLimitMiddleware",
     "RequestContextMiddleware",
     "RequestSizeLimitMiddleware",
-    "RateLimitMiddleware",
     "SecurityHeadersMiddleware",
 ]
 
@@ -127,7 +128,9 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Token-bucket rate limiting keyed by API key, else by client IP."""
 
-    def __init__(self, app: ASGIApp, *, limiter: RateLimiter, exempt: frozenset[str] = _EXEMPT_PATHS) -> None:
+    def __init__(
+        self, app: ASGIApp, *, limiter: RateLimiter, exempt: frozenset[str] = _EXEMPT_PATHS
+    ) -> None:
         super().__init__(app)
         self.limiter = limiter
         self.exempt = exempt
@@ -176,7 +179,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Conservative security headers for a browser-facing deployment."""
 
-    _HEADERS = {
+    _HEADERS: ClassVar[dict[str, str]] = {
         "X-Content-Type-Options": "nosniff",
         "X-Frame-Options": "DENY",
         "Referrer-Policy": "no-referrer",

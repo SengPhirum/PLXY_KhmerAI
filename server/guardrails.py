@@ -34,26 +34,36 @@ from server.schemas import EscalationReason
 log = get_logger(__name__)
 
 __all__ = [
-    "InputVerdict",
-    "OutputVerdict",
-    "InputGuard",
-    "OutputGuard",
-    "classify_intent",
     "GROUNDING_REQUIRED_INTENTS",
+    "InputGuard",
+    "InputVerdict",
+    "OutputGuard",
+    "OutputVerdict",
+    "classify_intent",
 ]
 
 # Intents whose answers MUST be supported by retrieved company documents.
 GROUNDING_REQUIRED_INTENTS = frozenset(
     {
-        "pricing", "specification", "availability", "warranty", "returns",
-        "refund", "policy", "product_info", "service_info",
+        "pricing",
+        "specification",
+        "availability",
+        "warranty",
+        "returns",
+        "refund",
+        "policy",
+        "product_info",
+        "service_info",
     }
 )
 
 # Khmer-first intent cues.  Ordered: the first intent whose cue matches wins, so
 # the more specific intents are listed before the general ones.
 _INTENT_CUES: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("escalation", ("និយាយជាមួយមនុស្ស", "បុគ្គលិកពិត", "អ្នកគ្រប់គ្រង", "speak to a human", "talk to an agent", "manager")),
+    (
+        "escalation",
+        ("និយាយជាមួយមនុស្ស", "បុគ្គលិកពិត", "អ្នកគ្រប់គ្រង", "speak to a human", "talk to an agent", "manager"),
+    ),
     ("refund", ("សងប្រាក់", "សំណង", "យកលុយវិញ", "refund", "money back")),
     ("returns", ("ប្តូរទំនិញ", "ប្រគល់មកវិញ", "return the item", "exchange")),
     ("warranty", ("ធានា", "warranty", "guarantee")),
@@ -191,9 +201,7 @@ class InputGuard:
         verdict.message = cleaned
 
         language, _ = detect_language(cleaned, khmer_present=0.10)
-        verdict.language = (
-            "en" if language is TextLanguage.ENGLISH else "km"
-        )
+        verdict.language = "en" if language is TextLanguage.ENGLISH else "km"
 
         verdict.intent = classify_intent(cleaned)
         verdict.requires_grounding = verdict.intent in GROUNDING_REQUIRED_INTENTS
@@ -257,8 +265,7 @@ class OutputGuard:
             verdict.allowed = False
             verdict.reason = "system_prompt_leak"
             verdict.answer = (
-                "ខ្ញុំមិនអាចចែករំលែកសេចក្តីណែនាំផ្ទៃក្នុងបានទេ "
-                "ប៉ុន្តែខ្ញុំរីករាយជួយឆ្លើយសំណួរអំពីផលិតផល និងសេវាកម្មរបស់យើង។"
+                "ខ្ញុំមិនអាចចែករំលែកសេចក្តីណែនាំផ្ទៃក្នុងបានទេ ប៉ុន្តែខ្ញុំរីករាយជួយឆ្លើយសំណួរអំពីផលិតផល និងសេវាកម្មរបស់យើង។"
             )
             log.warning("guardrails.output.system_prompt_leak", extra={"intent": intent})
             return verdict

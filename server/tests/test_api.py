@@ -47,9 +47,7 @@ def test_ready_reports_all_components(client: TestClient) -> None:
     assert body["ready"] is True
 
 
-def test_ready_fails_when_ollama_is_down(
-    client: TestClient, fake_ollama: FakeOllamaClient
-) -> None:
+def test_ready_fails_when_ollama_is_down(client: TestClient, fake_ollama: FakeOllamaClient) -> None:
     fake_ollama.healthy = False
     response = client.get("/ready")
     assert response.status_code == 503
@@ -96,7 +94,11 @@ def test_conversation_id_is_reused_across_turns(client: TestClient) -> None:
     first = client.post("/v1/chat", json={"message": "សួស្តី", "stream": False}).json()
     second = client.post(
         "/v1/chat",
-        json={"message": "តើធានាប៉ុន្មានខែ?", "conversation_id": first["conversation_id"], "stream": False},
+        json={
+            "message": "តើធានាប៉ុន្មានខែ?",
+            "conversation_id": first["conversation_id"],
+            "stream": False,
+        },
     ).json()
     assert second["conversation_id"] == first["conversation_id"]
 
@@ -105,9 +107,7 @@ def test_multi_turn_context_is_carried_forward(
     client: TestClient, fake_ollama: FakeOllamaClient
 ) -> None:
     """The model number from turn 1 must still be known in turn 2."""
-    first = client.post(
-        "/v1/chat", json={"message": "ខ្ញុំមានម៉ូដែល QN-4500A", "stream": False}
-    ).json()
+    first = client.post("/v1/chat", json={"message": "ខ្ញុំមានម៉ូដែល QN-4500A", "stream": False}).json()
     client.post(
         "/v1/chat",
         json={
@@ -125,7 +125,11 @@ def test_history_is_included_but_bounded(client: TestClient, fake_ollama: FakeOl
     for i in range(10):
         client.post(
             "/v1/chat",
-            json={"message": f"សំណួរទី {i} អំពីការធានា", "conversation_id": conversation_id, "stream": False},
+            json={
+                "message": f"សំណួរទី {i} អំពីការធានា",
+                "conversation_id": conversation_id,
+                "stream": False,
+            },
         )
     messages = fake_ollama.calls[-1]
     assert messages[0]["role"] == "system"
@@ -161,16 +165,14 @@ def test_bad_conversation_id_is_rejected(client: TestClient) -> None:
 
 
 def test_model_override_is_forbidden(client: TestClient) -> None:
-    response = client.post(
-        "/v1/chat", json={"message": "សួស្តី", "model": "llama3", "stream": False}
-    )
+    response = client.post("/v1/chat", json={"message": "សួស្តី", "model": "llama3", "stream": False})
     assert response.status_code == 403
 
 
 def test_conversation_can_be_deleted(client: TestClient) -> None:
-    conversation_id = client.post(
-        "/v1/chat", json={"message": "សួស្តី", "stream": False}
-    ).json()["conversation_id"]
+    conversation_id = client.post("/v1/chat", json={"message": "សួស្តី", "stream": False}).json()[
+        "conversation_id"
+    ]
     body = client.delete(f"/v1/conversations/{conversation_id}").json()
     assert body["deleted"] is True
     assert client.delete(f"/v1/conversations/{conversation_id}").json()["deleted"] is False
@@ -198,9 +200,7 @@ def test_stream_emits_start_tokens_and_done(client: TestClient) -> None:
 
 
 def test_stream_reports_sources(client: TestClient) -> None:
-    response = client.post(
-        "/v1/chat/stream", json={"message": "តើ QN-4500A ធានាប៉ុន្មានខែ?"}
-    )
+    response = client.post("/v1/chat/stream", json={"message": "តើ QN-4500A ធានាប៉ុន្មានខែ?"})
     events = _sse_events(response)
     source_events = [e for e in events if e["type"] == "sources"]
     assert source_events and source_events[0]["sources"]
@@ -282,9 +282,7 @@ def test_admin_accepts_the_configured_key(client: TestClient) -> None:
 
 
 def test_admin_accepts_a_bearer_token(client: TestClient) -> None:
-    response = client.get(
-        "/v1/admin/diagnostics", headers={"Authorization": f"Bearer {ADMIN_KEY}"}
-    )
+    response = client.get("/v1/admin/diagnostics", headers={"Authorization": f"Bearer {ADMIN_KEY}"})
     assert response.status_code == 200
 
 

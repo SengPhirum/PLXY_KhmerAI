@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from enum import StrEnum
 from typing import Any
 
@@ -10,20 +10,20 @@ from pydantic import BaseModel, ConfigDict, Field
 
 __all__ = [
     "Chunk",
-    "RetrievedChunk",
-    "RetrievalFilters",
-    "RetrievalResult",
     "ConflictGroup",
     "IndexManifest",
     "RetrievalConfidence",
+    "RetrievalFilters",
+    "RetrievalResult",
+    "RetrievedChunk",
 ]
 
 
 class RetrievalConfidence(StrEnum):
-    HIGH = "high"        # answer from the context
-    MEDIUM = "medium"    # answer, but hedge and cite
-    LOW = "low"          # do not answer from context; express uncertainty
-    NONE = "none"        # nothing retrieved
+    HIGH = "high"  # answer from the context
+    MEDIUM = "medium"  # answer, but hedge and cite
+    LOW = "low"  # do not answer from context; express uncertainty
+    NONE = "none"  # nothing retrieved
 
 
 class Chunk(BaseModel):
@@ -134,9 +134,15 @@ class RetrievalFilters(BaseModel):
 
     def matches(self, metadata: dict[str, Any], *, as_of: date | None = None) -> bool:
         """Evaluate the filter against a chunk's metadata."""
-        if self.product_id and str(metadata.get("product_id", "")).upper() != self.product_id.upper():
+        if (
+            self.product_id
+            and str(metadata.get("product_id", "")).upper() != self.product_id.upper()
+        ):
             return False
-        if self.service_id and str(metadata.get("service_id", "")).upper() != self.service_id.upper():
+        if (
+            self.service_id
+            and str(metadata.get("service_id", "")).upper() != self.service_id.upper()
+        ):
             return False
         if self.category and str(metadata.get("category", "")) != self.category:
             return False
@@ -155,7 +161,7 @@ class RetrievalFilters(BaseModel):
         if not self.include_expired:
             expiry = str(metadata.get("expiration_date", "") or "")
             if expiry:
-                today = self.effective_on or as_of or datetime.now(timezone.utc).date()
+                today = self.effective_on or as_of or datetime.now(UTC).date()
                 try:
                     if date.fromisoformat(expiry) < today:
                         return False
@@ -241,7 +247,7 @@ class IndexManifest(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     index_version: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     embedding_backend: str = ""
     embedding_model: str = ""
     embedding_dim: int = 0

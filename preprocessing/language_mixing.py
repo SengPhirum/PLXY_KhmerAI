@@ -24,9 +24,9 @@ from preprocessing.khmer_detection import ScriptProfile, profile_text
 from preprocessing.khmer_script import split_script_runs
 
 __all__ = [
-    "SpanKind",
-    "ProtectedSpan",
     "CodeSwitchAnalysis",
+    "ProtectedSpan",
+    "SpanKind",
     "analyse_code_switching",
     "extract_protected_spans",
     "verify_protected_spans",
@@ -152,9 +152,7 @@ def analyse_code_switching(text: str) -> CodeSwitchAnalysis:
     )
 
 
-def extract_protected_spans(
-    text: str, *, include_latin_terms: bool = False
-) -> list[ProtectedSpan]:
+def extract_protected_spans(text: str, *, include_latin_terms: bool = False) -> list[ProtectedSpan]:
     """Find spans that must survive a Khmer answer unchanged.
 
     Overlapping matches are resolved by pattern priority, then by length, so a

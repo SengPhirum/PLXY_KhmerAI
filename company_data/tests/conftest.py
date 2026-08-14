@@ -110,7 +110,9 @@ def company_dir(tmp_path: Path) -> Path:
     (root / "policy").mkdir(parents=True)
     (root / "product").mkdir(parents=True)
 
-    (root / "warranty" / "QN-4500A" / "warranty_v2.md").write_text(WARRANTY_ACTIVE, encoding="utf-8")
+    (root / "warranty" / "QN-4500A" / "warranty_v2.md").write_text(
+        WARRANTY_ACTIVE, encoding="utf-8"
+    )
     (root / "pricing" / "promo_new_year.md").write_text(WARRANTY_EXPIRED, encoding="utf-8")
     (root / "policy" / "delivery_draft.md").write_text(DELIVERY_DRAFT, encoding="utf-8")
     (root / "product" / "rf22b_injected.md").write_text(INJECTED_DOCUMENT, encoding="utf-8")

@@ -36,18 +36,18 @@ from enum import IntEnum
 from typing import Final
 
 __all__ = [
+    "COENG",
+    "KHMER_CONSONANTS",
+    "KHMER_PUNCTUATION",
+    "ZERO_WIDTH",
     "CharClass",
     "classify_char",
+    "count_syllables",
     "is_khmer_char",
     "iter_clusters",
     "segment_syllables",
-    "count_syllables",
-    "tokenize_for_search",
     "split_script_runs",
-    "KHMER_CONSONANTS",
-    "KHMER_PUNCTUATION",
-    "COENG",
-    "ZERO_WIDTH",
+    "tokenize_for_search",
 ]
 
 # --- code points ------------------------------------------------------------
@@ -61,9 +61,9 @@ KHMER_CONSONANTS: Final = frozenset(chr(c) for c in range(0x1780, 0x17A3))  # �
 KHMER_INDEPENDENT_VOWELS: Final = frozenset(chr(c) for c in range(0x17A3, 0x17B4))
 KHMER_DEPENDENT_VOWELS: Final = frozenset(chr(c) for c in range(0x17B6, 0x17C6))
 KHMER_REGISTER_SHIFTERS: Final = frozenset({"៉", "៊"})  # MUUSIKATOAN, TRIISAP
-KHMER_SIGNS: Final = frozenset(
-    chr(c) for c in list(range(0x17C6, 0x17D2)) + [0x17D3, 0x17DD]
-) - KHMER_REGISTER_SHIFTERS
+KHMER_SIGNS: Final = (
+    frozenset(chr(c) for c in [*range(0x17C6, 0x17D2), 0x17D3, 0x17DD]) - KHMER_REGISTER_SHIFTERS
+)
 KHMER_DIGITS: Final = frozenset(chr(c) for c in range(0x17E0, 0x17EA))
 KHMER_LEK_ATTAK: Final = frozenset(chr(c) for c in range(0x17F0, 0x17FA))
 # U+17D4..U+17DC: khan, bariyoosan, camnuc pii kuuh, lek too, beyyal, phnaek
@@ -79,11 +79,11 @@ KHMER_DEPRECATED: Final = frozenset({"ឣ", "ឤ", "឴", "឵", "៓"})
 class CharClass(IntEnum):
     """Rank inside an orthographic cluster.  Also the canonical ordering key."""
 
-    BASE = 0            # consonant or independent vowel
-    COENG = 1           # U+17D2 and the subscript consonant that follows it
-    SHIFTER = 2         # U+17C9 / U+17CA
-    VOWEL = 3           # dependent vowel U+17B6..U+17C5
-    SIGN = 4            # nikahit, reahmuk, robat, toandakhiat, ...
+    BASE = 0  # consonant or independent vowel
+    COENG = 1  # U+17D2 and the subscript consonant that follows it
+    SHIFTER = 2  # U+17C9 / U+17CA
+    VOWEL = 3  # dependent vowel U+17B6..U+17C5
+    SIGN = 4  # nikahit, reahmuk, robat, toandakhiat, ...
     KHMER_DIGIT = 5
     KHMER_PUNCT = 6
     LATIN = 7
@@ -197,9 +197,7 @@ def count_syllables(text: str) -> int:
     lost, but it is not a syllable - counting it would let a run of stray marks
     masquerade as well-formed Khmer.
     """
-    return sum(
-        1 for cluster in iter_clusters(text) if classify_char(cluster[0]) is CharClass.BASE
-    )
+    return sum(1 for cluster in iter_clusters(text) if classify_char(cluster[0]) is CharClass.BASE)
 
 
 _LATIN_TOKEN = re.compile(r"[A-Za-z][A-Za-z0-9]*(?:[-_./][A-Za-z0-9]+)*|\d+(?:[.,]\d+)*")
@@ -239,8 +237,7 @@ def tokenize_for_search(
                     tokens.extend(syllables)
                 else:
                     tokens.extend(
-                        "".join(syllables[i : i + width])
-                        for i in range(len(syllables) - width + 1)
+                        "".join(syllables[i : i + width]) for i in range(len(syllables) - width + 1)
                     )
         else:
             for match in _LATIN_TOKEN.finditer(run):

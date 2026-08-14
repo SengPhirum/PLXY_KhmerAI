@@ -125,7 +125,11 @@ def main(argv: list[str] | None = None) -> int:
     records = generate(documents, per_document=args.per_document, include_noise=not args.no_noise)
     written = write_jsonl(args.output, records)
     log.info("synthetic.support.generated", extra={"records": written, "documents": len(documents)})
-    print(json.dumps({"documents": len(documents), "records": written, "output": args.output}, indent=2))
+    print(
+        json.dumps(
+            {"documents": len(documents), "records": written, "output": args.output}, indent=2
+        )
+    )
     print(
         "\nNext: screen the output before training with\n"
         f"    python synthetic_data/quality_check.py --input {args.output} "

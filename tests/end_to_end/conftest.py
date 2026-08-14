@@ -37,10 +37,7 @@ WARRANTY_TEXT = (
     "ការធានាគ្របដណ្តប់លើកំហុសផលិតកម្ម ប៉ុន្តែមិនរាប់បញ្ចូលការខូចខាតដោយសារការប្រើប្រាស់មិនត្រឹមត្រូវ។"
 )
 PRICE_TEXT = "ទូរទឹកកក QN-4500A មានតម្លៃលក់រាយ 520 USD រួមបញ្ចូលពន្ធអាករតម្លៃបន្ថែម។"
-DELIVERY_TEXT = (
-    "សេវាកម្មដឹកជញ្ជូនក្នុងរាជធានីភ្នំពេញចំណាយពេល 1 ថ្ងៃធ្វើការ "
-    "ហើយទៅបណ្តាខេត្តចំណាយពេល 3 ថ្ងៃធ្វើការ។"
-)
+DELIVERY_TEXT = "សេវាកម្មដឹកជញ្ជូនក្នុងរាជធានីភ្នំពេញចំណាយពេល 1 ថ្ងៃធ្វើការ ហើយទៅបណ្តាខេត្តចំណាយពេល 3 ថ្ងៃធ្វើការ។"
 
 
 class FakeOllamaClient:
@@ -297,10 +294,10 @@ def client(
         # Retrieval uses the hashing embedder, whose absolute similarities are
         # lower than a real model's; relax the confidence floor for the tests.
         state: deps.AppState = application.state.app_state
-        if state.rag is not None and state.rag._retriever is not None:  # noqa: SLF001
-            state.rag._retriever.config.min_score_to_answer = 0.02  # noqa: SLF001
-            state.rag._retriever.config.medium_confidence_score = 0.05  # noqa: SLF001
-            state.rag._retriever.config.high_confidence_score = 0.20  # noqa: SLF001
+        if state.rag is not None and state.rag._retriever is not None:
+            state.rag._retriever.config.min_score_to_answer = 0.02
+            state.rag._retriever.config.medium_confidence_score = 0.05
+            state.rag._retriever.config.high_confidence_score = 0.20
         yield test_client
 
 

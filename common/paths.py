@@ -11,9 +11,9 @@ import os
 from pathlib import Path
 
 __all__ = [
-    "PROJECT_ROOT",
     "CONFIG_DIR",
     "DATA_ROOT",
+    "PROJECT_ROOT",
     "PROMPT_DIR",
     "REPORT_DIR",
     "ensure_dir",

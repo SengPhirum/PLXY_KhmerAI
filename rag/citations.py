@@ -31,10 +31,10 @@ from security.prompt_injection import wrap_context
 __all__ = [
     "Citation",
     "GroundingReport",
-    "build_context_block",
     "build_citations",
-    "verify_grounding",
+    "build_context_block",
     "split_sentences",
+    "verify_grounding",
 ]
 
 _SENTENCE_SPLIT = re.compile(r"(?<=[។៕៖!?\.])\s+|\n+")
@@ -57,13 +57,30 @@ _CLAIM_KINDS = frozenset(
 # "is not included", "you are entitled to".  A sentence containing one of these
 # asserts a company rule and therefore needs support even without a number.
 _POLICY_MARKERS = (
-    "ត្រូវតែ", "មិនរាប់បញ្ចូល", "គ្របដណ្តប់", "អាចទាមទារ", "មិនអាច", "តម្រូវឱ្យ",
-    "ការធានា", "គោលការណ៍", "must", "is covered", "not covered", "entitled",
-    "policy states", "guaranteed",
+    "ត្រូវតែ",
+    "មិនរាប់បញ្ចូល",
+    "គ្របដណ្តប់",
+    "អាចទាមទារ",
+    "មិនអាច",
+    "តម្រូវឱ្យ",
+    "ការធានា",
+    "គោលការណ៍",
+    "must",
+    "is covered",
+    "not covered",
+    "entitled",
+    "policy states",
+    "guaranteed",
 )
 _HEDGE_MARKERS = (
-    "ខ្ញុំមិនមានព័ត៌មាន", "មិនច្បាស់", "សូមទាក់ទង", "មិនមានក្នុងឯកសារ",
-    "ខ្ញុំមិនអាចបញ្ជាក់", "i don't have", "i cannot confirm", "please contact",
+    "ខ្ញុំមិនមានព័ត៌មាន",
+    "មិនច្បាស់",
+    "សូមទាក់ទង",
+    "មិនមានក្នុងឯកសារ",
+    "ខ្ញុំមិនអាចបញ្ជាក់",
+    "i don't have",
+    "i cannot confirm",
+    "please contact",
 )
 
 
@@ -194,9 +211,7 @@ def build_context_block(
 
 def _claim_values(text: str) -> set[str]:
     return {
-        span.normalised()
-        for span in extract_protected_spans(text)
-        if span.kind in _CLAIM_KINDS
+        span.normalised() for span in extract_protected_spans(text) if span.kind in _CLAIM_KINDS
     }
 
 
@@ -270,8 +285,10 @@ def verify_grounding(
             report.supported_sentences.append(sentence)
             continue
         best = max(
-            (len(sentence_syllables & chunk_syllables) / len(sentence_syllables)
-             for chunk_syllables in context_syllable_sets),
+            (
+                len(sentence_syllables & chunk_syllables) / len(sentence_syllables)
+                for chunk_syllables in context_syllable_sets
+            ),
             default=0.0,
         )
         if best >= min_syllable_overlap:

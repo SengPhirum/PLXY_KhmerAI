@@ -15,7 +15,7 @@ from typing import Any
 
 from common.logging import ConsoleFormatter, JsonFormatter, configure_logging
 
-__all__ = ["uvicorn_log_config", "add_file_handler", "setup_from_settings"]
+__all__ = ["add_file_handler", "setup_from_settings", "uvicorn_log_config"]
 
 
 def uvicorn_log_config(level: str = "INFO", fmt: str = "json") -> dict[str, Any]:

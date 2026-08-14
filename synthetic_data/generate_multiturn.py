@@ -26,13 +26,22 @@ if str(_REPO_ROOT) not in sys.path:
 
 from common.io import write_jsonl  # noqa: E402
 from common.logging import get_logger  # noqa: E402
-from synthetic_data._generator import SourceDocument, load_documents, make_record, stable_sample_id  # noqa: E402
+from synthetic_data._generator import (  # noqa: E402
+    SourceDocument,
+    load_documents,
+    make_record,
+    stable_sample_id,
+)
 
 log = get_logger("synthetic.multiturn")
 
 VAGUE_OPENINGS = (
-    "ទូរទឹកកកខូច", "ខ្ញុំមានបញ្ហា", "ជួយខ្ញុំផង", "មិនដំណើរការ",
-    "ខ្ញុំចង់សួរអំពីការធានា", "មានរឿងចង់សួរបន្តិច",
+    "ទូរទឹកកកខូច",
+    "ខ្ញុំមានបញ្ហា",
+    "ជួយខ្ញុំផង",
+    "មិនដំណើរការ",
+    "ខ្ញុំចង់សួរអំពីការធានា",
+    "មានរឿងចង់សួរបន្តិច",
 )
 CLARIFYING = (
     "សូមទោស តើលោកអ្នកអាចប្រាប់លេខម៉ូដែលផលិតផលបានទេ? វាមាននៅលើស្លាកខាងក្រោយ ឬលើវិក្កយបត្រ។",
@@ -56,7 +65,9 @@ ESCALATION_ANSWERS = (
 )
 
 
-def generate(documents: list[SourceDocument], *, count: int = 200, escalation_fraction: float = 0.3) -> list[dict[str, Any]]:
+def generate(
+    documents: list[SourceDocument], *, count: int = 200, escalation_fraction: float = 0.3
+) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     openings = itertools.cycle(VAGUE_OPENINGS)
     clarifiers = itertools.cycle(CLARIFYING)
@@ -73,7 +84,7 @@ def generate(documents: list[SourceDocument], *, count: int = 200, escalation_fr
         if not sentences:
             continue
 
-        follow_up, intent = FOLLOW_UPS[index % len(FOLLOW_UPS)]
+        follow_up, _intent = FOLLOW_UPS[index % len(FOLLOW_UPS)]
         answer = " ".join(sentences[:2])
         turns: list[tuple[str, str]] = [
             ("user", next(openings)),
@@ -116,8 +127,14 @@ def main(argv: list[str] | None = None) -> int:
     records = generate(documents, count=args.count, escalation_fraction=args.escalation_fraction)
     written = write_jsonl(args.output, records)
     escalations = sum(1 for r in records if r["metadata"]["intent"] == "escalation")
-    log.info("synthetic.multiturn.generated", extra={"records": written, "escalations": escalations})
-    print(json.dumps({"records": written, "escalations": escalations, "output": args.output}, indent=2))
+    log.info(
+        "synthetic.multiturn.generated", extra={"records": written, "escalations": escalations}
+    )
+    print(
+        json.dumps(
+            {"records": written, "escalations": escalations, "output": args.output}, indent=2
+        )
+    )
     return 0
 
 

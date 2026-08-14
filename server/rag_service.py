@@ -93,8 +93,11 @@ class RagService:
         if manifest.is_file():
             try:
                 version = str(read_json(manifest).get("index_version", version))
-            except Exception:  # noqa: BLE001 - a damaged manifest is not fatal
-                pass
+            except Exception as exc:
+                log.warning(
+                    "rag_service.manifest_unreadable",
+                    extra={"path": str(manifest), "error": str(exc)},
+                )
         return directory, version
 
     def load(self) -> None:
@@ -159,7 +162,7 @@ class RagService:
             return True
         except FileNotFoundError as exc:
             log.warning("rag_service.no_index", extra={"detail": str(exc)})
-        except Exception as exc:  # noqa: BLE001 - never block startup on RAG
+        except Exception as exc:
             log.error("rag_service.load_failed", extra={"error": f"{type(exc).__name__}: {exc}"})
         return False
 
@@ -195,7 +198,7 @@ class RagService:
                 index_version=self._index_version,
                 strategy="timeout",
             )
-        except Exception as exc:  # noqa: BLE001 - retrieval must never 500 a chat turn
+        except Exception as exc:
             log.error("rag_service.search_failed", extra={"error": f"{type(exc).__name__}: {exc}"})
             return RetrievalResult(
                 query=query, confidence=RetrievalConfidence.NONE, strategy="error"

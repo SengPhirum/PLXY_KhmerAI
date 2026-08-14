@@ -37,7 +37,13 @@ from rag.vector_store import LocalVectorStore
 
 log = get_logger(__name__)
 
-__all__ = ["evaluate_retrieval", "sweep_chunking", "compare_embedders", "calibrate_confidence", "main"]
+__all__ = [
+    "calibrate_confidence",
+    "compare_embedders",
+    "evaluate_retrieval",
+    "main",
+    "sweep_chunking",
+]
 
 _K_VALUES = (1, 3, 5, 10)
 
@@ -124,16 +130,15 @@ def evaluate_retrieval(
         results=results,
     )
     report.aggregate = {
-        **{
-            f"recall@{k}": round(sum(v) / len(v), 4) if v else 0.0
-            for k, v in per_k.items()
-        },
+        **{f"recall@{k}": round(sum(v) / len(v), 4) if v else 0.0 for k, v in per_k.items()},
         "mrr": round(sum(reciprocal_ranks) / len(reciprocal_ranks), 4) if reciprocal_ranks else 0.0,
         "ndcg@10": round(sum(ndcgs) / len(ndcgs), 4) if ndcgs else 0.0,
         "empty_result_rate": round(empty / len(scored), 4) if scored else 0.0,
         "chunks_indexed": float(store.size),
     }
-    report.aggregate.update({f"latency_ms_{k}": v for k, v in latency_percentiles(latencies).items()})
+    report.aggregate.update(
+        {f"latency_ms_{k}": v for k, v in latency_percentiles(latencies).items()}
+    )
 
     gates = thresholds or {}
     report.add_gate(
@@ -256,7 +261,7 @@ def compare_embedders(
                     "ndcg@10": report.aggregate.get("ndcg@10", 0.0),
                 }
             )
-        except Exception as exc:  # noqa: BLE001 - a missing model must not stop the sweep
+        except Exception as exc:
             rows.append({"id": identifier, "error": f"{type(exc).__name__}: {exc}"})
             log.error("evaluation.embedder.failed", extra={"id": identifier, "error": str(exc)})
 
@@ -316,7 +321,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--golden", default="evaluation/golden/customer_support.jsonl")
     parser.add_argument("--records", default="data/interim/company_records.jsonl")
     parser.add_argument("--config", default="configs/rag/retrieval.yaml")
-    parser.add_argument("--strategy", default="rrf", choices=("rrf", "weighted", "dense_only", "lexical_only"))
+    parser.add_argument(
+        "--strategy", default="rrf", choices=("rrf", "weighted", "dense_only", "lexical_only")
+    )
     parser.add_argument("--top-k", type=int, default=10)
     parser.add_argument("--sweep-chunking", default=None, help="comma-separated chunk sizes")
     parser.add_argument("--overlap", default="0,50,100", help="comma-separated overlaps")

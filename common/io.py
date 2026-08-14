@@ -17,22 +17,24 @@ from pathlib import Path
 from typing import Any
 
 __all__ = [
+    "append_jsonl",
+    "atomic_symlink",
     "atomic_write_bytes",
     "atomic_write_text",
-    "read_json",
-    "write_json",
-    "read_jsonl",
-    "write_jsonl",
-    "append_jsonl",
     "count_lines",
-    "atomic_symlink",
+    "read_json",
+    "read_jsonl",
+    "write_json",
+    "write_jsonl",
 ]
 
 
 def atomic_write_bytes(path: str | os.PathLike[str], payload: bytes) -> Path:
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp_name = tempfile.mkstemp(dir=str(target.parent), prefix=f".{target.name}.", suffix=".tmp")
+    fd, tmp_name = tempfile.mkstemp(
+        dir=str(target.parent), prefix=f".{target.name}.", suffix=".tmp"
+    )
     tmp = Path(tmp_name)
     try:
         with os.fdopen(fd, "wb") as handle:

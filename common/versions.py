@@ -13,7 +13,7 @@ because the index changes without a code deploy.
 from __future__ import annotations
 
 import os
-import subprocess  # noqa: S404 - used only for `git rev-parse` with a fixed argv
+import subprocess
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -21,7 +21,7 @@ from typing import Any
 from common.config import ConfigError, load_config
 from common.paths import PROJECT_ROOT
 
-__all__ = ["PlatformVersions", "load_versions", "git_commit"]
+__all__ = ["PlatformVersions", "git_commit", "load_versions"]
 
 _UNKNOWN = "unknown"
 

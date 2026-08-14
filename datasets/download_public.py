@@ -24,7 +24,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -83,7 +83,7 @@ def _manifest_skeleton(source: dict[str, Any], *, output: Path, evaluation: bool
         "dataset": source["name"],
         "source": source["hf_id"],
         "revision": source.get("revision", "unresolved"),
-        "download_date": datetime.now(timezone.utc).isoformat(),
+        "download_date": datetime.now(UTC).isoformat(),
         "license": source.get("license", "see the dataset card"),
         "language": "km",
         "subset": source.get("subset", ""),
@@ -92,9 +92,7 @@ def _manifest_skeleton(source: dict[str, Any], *, output: Path, evaluation: bool
         "raw_bytes": 0,
         "sha256": "",
         "intended_use": source.get("intended_use", "unspecified"),
-        "commercial_review_status": source.get(
-            "commercial_review_status", "review_required"
-        ),
+        "commercial_review_status": source.get("commercial_review_status", "review_required"),
         "output_path": str(output),
         "evaluation_only": evaluation,
         "downloaded": False,
@@ -127,7 +125,7 @@ def download_source(
         return manifest
 
     try:
-        from datasets import load_dataset  # noqa: PLC0415 - HF datasets, not this directory
+        from datasets import load_dataset
     except ImportError:
         manifest["notes"] = (
             "the `datasets` package is not installed: pip install -r requirements/training.txt"
@@ -148,7 +146,7 @@ def download_source(
             streaming=streaming,
             revision=source.get("revision") or None,
         )
-    except Exception as exc:  # noqa: BLE001 - a failed source is recorded, not fatal
+    except Exception as exc:
         manifest["notes"] = f"download failed: {type(exc).__name__}: {exc}"
         write_json(MANIFEST_DIR / f"{source['name']}.json", manifest)
         log.error("datasets.download.failed", extra={"dataset": source["name"], "error": str(exc)})
@@ -214,7 +212,7 @@ def main(argv: list[str] | None = None) -> int:
         for source in training + evaluation:
             print(
                 f"{source['name']:28s} {source['hf_id']:50s} "
-                f"{str(source.get('subset', '-')):14s} {source.get('commercial_review_status', '?')}"
+                f"{source.get('subset', '-')!s:14s} {source.get('commercial_review_status', '?')}"
             )
         print(
             "\nEvaluation sources are written to data/evaluation/public/ and are NEVER "
@@ -259,7 +257,9 @@ def main(argv: list[str] | None = None) -> int:
             + "\nRecord a legal decision in docs/dataset_provenance.md before using them.",
             file=sys.stderr,
         )
-    print("\nNext:\n    python datasets/build_manifest.py --root data/raw\n    python datasets/license_report.py")
+    print(
+        "\nNext:\n    python datasets/build_manifest.py --root data/raw\n    python datasets/license_report.py"
+    )
     return 0
 
 

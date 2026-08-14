@@ -40,7 +40,7 @@ def load_docx(path: str | os.PathLike[str]) -> list[LoadedDocument]:
 
     try:
         document = docx.Document(str(target))
-    except Exception as exc:  # noqa: BLE001 - python-docx raises package-specific errors
+    except Exception as exc:
         raise LoaderError(f"could not open DOCX {target}: {exc}") from exc
 
     blocks: list[str] = []

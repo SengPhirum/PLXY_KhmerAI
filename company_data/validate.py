@@ -31,7 +31,7 @@ from typing import Any
 
 from common.io import write_json, write_jsonl
 from common.logging import get_logger
-from company_data.loaders import SUPPORTED_EXTENSIONS, load_any, iter_documents
+from company_data.loaders import SUPPORTED_EXTENSIONS, iter_documents, load_any
 from company_data.normalize import NormalizeOptions, normalize_document
 from company_data.schema import (
     CompanyDocument,
@@ -44,7 +44,7 @@ from preprocessing.language_mixing import extract_protected_spans
 
 log = get_logger(__name__)
 
-__all__ = ["validate_documents", "ingest_directory", "find_conflicts", "main"]
+__all__ = ["find_conflicts", "ingest_directory", "main", "validate_documents"]
 
 REQUIRED_METADATA = ("owner", "category", "effective_date")
 
@@ -208,7 +208,11 @@ def validate_documents(
                 )
             )
 
-        if promote_valid and document.validation_status is ValidationStatus.NEEDS_REVIEW and not missing:
+        if (
+            promote_valid
+            and document.validation_status is ValidationStatus.NEEDS_REVIEW
+            and not missing
+        ):
             document = document.model_copy(update={"validation_status": ValidationStatus.VALID})
 
         accepted.append(document)
@@ -287,7 +291,7 @@ def ingest_directory(
                     )
                     continue
                 normalised.append(normalize_document(loaded, options))
-        except Exception as exc:  # noqa: BLE001 - reported per file, never fatal
+        except Exception as exc:
             report.files_failed += 1
             report.add(
                 IngestionIssue(
@@ -325,9 +329,7 @@ def main(argv: list[str] | None = None) -> int:
     documents, report = ingest_directory(args.input)
 
     to_write = (
-        documents
-        if args.include_non_retrievable
-        else [d for d in documents if d.is_retrievable()]
+        documents if args.include_non_retrievable else [d for d in documents if d.is_retrievable()]
     )
     write_jsonl(args.output, [d.model_dump(mode="json") for d in to_write])
     write_json(args.report, report.model_dump(mode="json"))

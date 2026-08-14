@@ -64,31 +64,44 @@ from preprocessing.khmer_script import (
 __all__ = [
     "NormalizationConfig",
     "NormalizationReport",
+    "normalize_for_hashing",
     "normalize_khmer",
     "normalize_text",
-    "normalize_for_hashing",
 ]
 
 ZwspPolicy = Literal["collapse", "strip", "keep"]
 
 # --- rule tables ------------------------------------------------------------
 _DEPRECATED_MAP: Final[dict[str, str]] = {
-    "ឣ": "អ",     # U+17A3 KHMER INDEPENDENT VOWEL QAQ  -> U+17A2
-    "ឤ": "អា",    # U+17A4 KHMER INDEPENDENT VOWEL QAA  -> U+17A2 U+17B6
-    "឴": "",      # U+17B4 KHMER VOWEL INHERENT AQ (must not appear in text)
-    "឵": "",      # U+17B5 KHMER VOWEL INHERENT AA
-    "៓": "",      # U+17D3 KHMER SIGN BATHAMASAT (deprecated)
+    "ឣ": "អ",  # U+17A3 KHMER INDEPENDENT VOWEL QAQ  -> U+17A2
+    "ឤ": "អា",  # U+17A4 KHMER INDEPENDENT VOWEL QAA  -> U+17A2 U+17B6
+    "឴": "",  # U+17B4 KHMER VOWEL INHERENT AQ (must not appear in text)
+    "឵": "",  # U+17B5 KHMER VOWEL INHERENT AA
+    "៓": "",  # U+17D3 KHMER SIGN BATHAMASAT (deprecated)
 }
 
 _VOWEL_COMPOSITION: Final[tuple[tuple[str, str], ...]] = (
-    ("េា", "ោ"),   # U+17C1 U+17B6 -> U+17C4
-    ("េី", "ៅ"),   # U+17C1 U+17B8 -> U+17C5
+    ("េា", "ោ"),  # U+17C1 U+17B6 -> U+17C4
+    ("េី", "ៅ"),  # U+17C1 U+17B8 -> U+17C5
 )
 
 _SPACE_LIKE: Final = {
-    " ", " ", " ", " ", " ", " ", " ",
-    " ", " ", " ", " ", " ", " ", " ",
-    " ", "　",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    " ",
+    "　",
 }
 _REMOVE_ZERO_WIDTH: Final = {ZWNJ, ZWJ, "﻿", "⁠", "᠎"}
 
@@ -287,9 +300,7 @@ def _normalize_whitespace(text: str) -> str:
     return "\n".join(line.rstrip() for line in text.split("\n")).strip()
 
 
-def normalize_khmer(
-    text: str, config: NormalizationConfig | None = None
-) -> NormalizationReport:
+def normalize_khmer(text: str, config: NormalizationConfig | None = None) -> NormalizationReport:
     """Normalise ``text`` and report every rule that fired."""
     cfg = config or NormalizationConfig()
     report = NormalizationReport(text=text, original_length=len(text))

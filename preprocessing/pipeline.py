@@ -42,7 +42,7 @@ from preprocessing.unicode_normalization import NormalizationConfig, normalize_k
 
 log = get_logger(__name__)
 
-__all__ = ["PipelineConfig", "KhmerPipeline", "run_pipeline", "main"]
+__all__ = ["KhmerPipeline", "PipelineConfig", "main", "run_pipeline"]
 
 
 @dataclass(slots=True)
@@ -317,7 +317,13 @@ def main(argv: list[str] | None = None) -> int:
     audit = run_pipeline(
         args.input, args.output, config=config, report_path=args.report, limit=args.limit
     )
-    print(json.dumps({k: v for k, v in audit.items() if k != "rejected_samples"}, indent=2, ensure_ascii=False))
+    print(
+        json.dumps(
+            {k: v for k, v in audit.items() if k != "rejected_samples"},
+            indent=2,
+            ensure_ascii=False,
+        )
+    )
     return 0 if audit["output_records"] > 0 else 1
 
 

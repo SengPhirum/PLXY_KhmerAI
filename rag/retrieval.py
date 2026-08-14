@@ -178,9 +178,7 @@ class Retriever:
 
         # 1. Dense retrieval over the filtered candidate set.
         query_vector = self.embedder.embed_query(normalised_query)
-        dense_hits = self.store.search(
-            query_vector, top_k=cfg.candidate_k, predicate=predicate
-        )
+        dense_hits = self.store.search(query_vector, top_k=cfg.candidate_k, predicate=predicate)
         dense_scores = {chunk.chunk_id: score for chunk, score in dense_hits}
         for chunk, _ in dense_hits:
             self._chunks_by_id.setdefault(chunk.chunk_id, chunk)
@@ -214,9 +212,7 @@ class Retriever:
             if chunk is None:
                 continue
             if cfg.drop_injected_chunks:
-                scan = scan_for_injection(
-                    chunk.text, block_threshold=cfg.injection_block_threshold
-                )
+                scan = scan_for_injection(chunk.text, block_threshold=cfg.injection_block_threshold)
                 if scan.blocked:
                     result.dropped_for_injection += 1
                     log.warning(
@@ -311,11 +307,7 @@ class Retriever:
 
 
 def _fact_values(text: str) -> set[str]:
-    return {
-        span.normalised()
-        for span in extract_protected_spans(text)
-        if span.kind in _FACT_KINDS
-    }
+    return {span.normalised() for span in extract_protected_spans(text) if span.kind in _FACT_KINDS}
 
 
 def _identity(chunk: RetrievedChunk) -> str:

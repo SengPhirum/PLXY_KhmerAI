@@ -21,7 +21,7 @@ import json
 import os
 import re
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -31,7 +31,16 @@ from preprocessing.language_mixing import SpanKind, extract_protected_spans
 
 log = get_logger("synthetic.generator")
 
-__all__ = ["SourceDocument", "Backend", "TemplateBackend", "LLMBackend", "build_backend", "load_documents", "make_record", "stable_sample_id"]
+__all__ = [
+    "Backend",
+    "LLMBackend",
+    "SourceDocument",
+    "TemplateBackend",
+    "build_backend",
+    "load_documents",
+    "make_record",
+    "stable_sample_id",
+]
 
 
 @dataclass(slots=True)
@@ -157,13 +166,15 @@ class LLMBackend(Backend):
         timeout: float = 180.0,
     ) -> None:
         self.model = model
-        self.base_url = (base_url or os.environ.get("KHMERAI_OLLAMA_BASE_URL", "http://127.0.0.1:11434")).rstrip("/")
+        self.base_url = (
+            base_url or os.environ.get("KHMERAI_OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+        ).rstrip("/")
         self.temperature = temperature
         self.timeout = timeout
         self._client: Any = None
 
     def generate(self, prompt: str, *, max_tokens: int = 1024) -> str:
-        import httpx  # noqa: PLC0415
+        import httpx
 
         if self._client is None:
             self._client = httpx.Client(base_url=self.base_url, timeout=self.timeout)
@@ -174,7 +185,11 @@ class LLMBackend(Backend):
                 "messages": [{"role": "user", "content": prompt}],
                 "stream": False,
                 # Higher temperature than serving: variety is the point here.
-                "options": {"temperature": self.temperature, "top_p": 0.95, "num_predict": max_tokens},
+                "options": {
+                    "temperature": self.temperature,
+                    "top_p": 0.95,
+                    "num_predict": max_tokens,
+                },
             },
         )
         response.raise_for_status()

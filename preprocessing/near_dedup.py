@@ -25,14 +25,14 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from common.hashing import LSHIndex, MinHash, jaccard_estimate, shingles
-from preprocessing.khmer_script import iter_clusters, is_khmer_char
+from preprocessing.khmer_script import is_khmer_char, iter_clusters
 from preprocessing.unicode_normalization import normalize_for_hashing
 
 __all__ = [
-    "NearDedupConfig",
-    "NearDuplicateResult",
-    "NearDeduplicator",
     "LeakageChecker",
+    "NearDedupConfig",
+    "NearDeduplicator",
+    "NearDuplicateResult",
     "khmer_shingle_tokens",
 ]
 
@@ -64,7 +64,7 @@ class NearDedupConfig:
     shingle_width: int = 5
     threshold: float = 0.85
     seed: int = 20260814
-    min_units: int = 8          # below this, MinHash is unreliable; fall back to exact
+    min_units: int = 8  # below this, MinHash is unreliable; fall back to exact
 
     @classmethod
     def for_sft(cls) -> NearDedupConfig:
@@ -136,7 +136,7 @@ class NearDeduplicator:
         if not matches:
             return NearDuplicateResult(False)
         best = matches[0]
-        similarity = jaccard_estimate(self._index._signatures[best], signature)  # noqa: SLF001
+        similarity = jaccard_estimate(self._index._signatures[best], signature)
         return NearDuplicateResult(True, best, similarity)
 
     def add(self, key: str, text: str) -> NearDuplicateResult:
@@ -160,7 +160,7 @@ class NearDeduplicator:
         matches = self._index.query(signature, exclude=key)
         if matches:
             best = matches[0]
-            similarity = jaccard_estimate(self._index._signatures[best], signature)  # noqa: SLF001
+            similarity = jaccard_estimate(self._index._signatures[best], signature)
             self.stats.near_duplicates += 1
             self.stats.matched_pairs.append((key, best, round(similarity, 4)))
             return NearDuplicateResult(True, best, similarity)
@@ -228,7 +228,7 @@ class LeakageChecker:
         if not matches:
             return False
         best = matches[0]
-        similarity = jaccard_estimate(self._index._signatures[best], signature)  # noqa: SLF001
+        similarity = jaccard_estimate(self._index._signatures[best], signature)
         self.hits.append((text[:120], best, round(similarity, 4)))
         return True
 

@@ -35,13 +35,13 @@ from enum import StrEnum
 from typing import Final
 
 __all__ = [
-    "InjectionSeverity",
+    "INJECTION_PATTERNS",
     "InjectionMatch",
     "InjectionScanResult",
-    "scan_for_injection",
+    "InjectionSeverity",
     "sanitise_document",
+    "scan_for_injection",
     "wrap_context",
-    "INJECTION_PATTERNS",
 ]
 
 
@@ -242,9 +242,7 @@ def scan_for_injection(
         residual *= 1.0 - _SEVERITY_WEIGHT[severity]
 
     score = 1.0 - residual
-    return InjectionScanResult(
-        score=score, matches=matches, blocked=score >= block_threshold
-    )
+    return InjectionScanResult(score=score, matches=matches, blocked=score >= block_threshold)
 
 
 # --- neutralisation ---------------------------------------------------------
@@ -294,7 +292,12 @@ def sanitise_document(text: str) -> tuple[str, list[str]]:
     return out, applied
 
 
-def wrap_context(chunks: list[str], *, open_tag: str = "<retrieved_company_context>", close_tag: str = "</retrieved_company_context>") -> str:
+def wrap_context(
+    chunks: list[str],
+    *,
+    open_tag: str = "<retrieved_company_context>",
+    close_tag: str = "</retrieved_company_context>",
+) -> str:
     """Wrap retrieved chunks in the untrusted-data delimiter, escape-proofed.
 
     The closing tag is stripped from the payload first, so a document that

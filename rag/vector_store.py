@@ -41,7 +41,7 @@ from rag.schemas import Chunk
 
 log = get_logger(__name__)
 
-__all__ = ["VectorStore", "LocalVectorStore", "QdrantVectorStore", "build_vector_store"]
+__all__ = ["LocalVectorStore", "QdrantVectorStore", "VectorStore", "build_vector_store"]
 
 _VECTORS_FILE = "vectors.npy"
 _CHUNKS_FILE = "chunks.jsonl"
@@ -147,7 +147,11 @@ class LocalVectorStore(VectorStore):
     def _flush(self) -> None:
         if not self._pending:
             return
-        stacked = np.vstack([self._vectors, *self._pending]) if self._vectors.size else np.vstack(self._pending)
+        stacked = (
+            np.vstack([self._vectors, *self._pending])
+            if self._vectors.size
+            else np.vstack(self._pending)
+        )
         self._vectors = stacked.astype(np.float32)
         self._pending.clear()
 
@@ -223,7 +227,7 @@ class QdrantVectorStore(VectorStore):
     def _connect(self) -> tuple[Any, Any]:
         if self._client is None:
             try:
-                from qdrant_client import QdrantClient, models  # noqa: PLC0415
+                from qdrant_client import QdrantClient, models
             except ImportError as exc:  # pragma: no cover - optional dependency
                 raise RuntimeError(
                     "qdrant-client is not installed. `pip install -r requirements/rag.txt` "
@@ -242,9 +246,7 @@ class QdrantVectorStore(VectorStore):
         if not exists:
             client.create_collection(
                 collection_name=self.collection,
-                vectors_config=models.VectorParams(
-                    size=self.dim, distance=models.Distance.COSINE
-                ),
+                vectors_config=models.VectorParams(size=self.dim, distance=models.Distance.COSINE),
             )
             # Indexed payload fields - these are the retrieval filters.
             for field, schema in (
@@ -312,7 +314,15 @@ class QdrantVectorStore(VectorStore):
             metadata = {
                 k: v
                 for k, v in payload.items()
-                if k not in ("text", "chunk_id", "document_id", "ordinal", "heading_path", "token_estimate")
+                if k
+                not in (
+                    "text",
+                    "chunk_id",
+                    "document_id",
+                    "ordinal",
+                    "heading_path",
+                    "token_estimate",
+                )
             }
             if predicate is not None and not predicate(metadata):
                 continue
@@ -361,7 +371,14 @@ class QdrantVectorStore(VectorStore):
                             k: v
                             for k, v in payload.items()
                             if k
-                            not in ("text", "chunk_id", "document_id", "ordinal", "heading_path", "token_estimate")
+                            not in (
+                                "text",
+                                "chunk_id",
+                                "document_id",
+                                "ordinal",
+                                "heading_path",
+                                "token_estimate",
+                            )
                         },
                     )
                 )

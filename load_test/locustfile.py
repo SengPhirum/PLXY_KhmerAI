@@ -18,6 +18,7 @@ import random
 import sys
 import time
 from pathlib import Path
+from typing import ClassVar
 
 from locust import HttpUser, LoadTestShape, between, events, task
 
@@ -55,7 +56,7 @@ class SupportCustomer(HttpUser):
     wait_time = between(2, 8)
 
     def on_start(self) -> None:
-        self.conversation_id = f"locust-{random.randint(1, 10**9)}"  # noqa: S311
+        self.conversation_id = f"locust-{random.randint(1, 10**9)}"
         self.client.headers.update({"Content-Type": "application/json"})
 
     def _chat(self, message: str, *, stream: bool, name: str, product_id: str = "") -> None:
@@ -68,7 +69,9 @@ class SupportCustomer(HttpUser):
             payload["product_id"] = product_id
 
         if not stream:
-            with self.client.post("/v1/chat", json=payload, name=name, catch_response=True) as response:
+            with self.client.post(
+                "/v1/chat", json=payload, name=name, catch_response=True
+            ) as response:
                 if response.status_code == 503:
                     response.success()  # queue full is a controlled outcome, not a failure
                 elif response.status_code != 200:
@@ -107,33 +110,35 @@ class SupportCustomer(HttpUser):
     @task(50)
     def short_question(self) -> None:
         if SHORT:
-            self._chat(random.choice(SHORT)["message"], stream=False, name="/v1/chat [short]")  # noqa: S311
+            self._chat(random.choice(SHORT)["message"], stream=False, name="/v1/chat [short]")
 
     @task(25)
     def rag_question(self) -> None:
         if RAG:
-            row = random.choice(RAG)  # noqa: S311
+            row = random.choice(RAG)
             self._chat(
-                row["message"], stream=True, name="/v1/chat/stream [rag]",
+                row["message"],
+                stream=True,
+                name="/v1/chat/stream [rag]",
                 product_id=row.get("product_id", ""),
             )
 
     @task(15)
     def follow_up(self) -> None:
         if MULTITURN:
-            for row in random.sample(MULTITURN, k=min(2, len(MULTITURN))):  # noqa: S311
+            for row in random.sample(MULTITURN, k=min(2, len(MULTITURN))):
                 self._chat(row["message"], stream=True, name="/v1/chat/stream [multiturn]")
 
     @task(5)
     def long_question(self) -> None:
         if LONG:
-            self._chat(random.choice(LONG)["message"], stream=True, name="/v1/chat/stream [long]")  # noqa: S311
+            self._chat(random.choice(LONG)["message"], stream=True, name="/v1/chat/stream [long]")
 
     @task(5)
     def adversarial(self) -> None:
         if ADVERSARIAL:
             self._chat(
-                random.choice(ADVERSARIAL)["message"], stream=False, name="/v1/chat [adversarial]"  # noqa: S311
+                random.choice(ADVERSARIAL)["message"], stream=False, name="/v1/chat [adversarial]"
             )
 
     @task(2)
@@ -148,7 +153,7 @@ class RampToTwenty(LoadTestShape):
                --class-picker RampToTwenty
     """
 
-    stages = [
+    stages: ClassVar[list[dict[str, int]]] = [
         {"duration": 60, "users": 1, "spawn_rate": 1},
         {"duration": 180, "users": 5, "spawn_rate": 1},
         {"duration": 360, "users": 10, "spawn_rate": 1},

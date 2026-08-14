@@ -15,7 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -49,7 +49,7 @@ def manifest_for(path: Path, *, existing: dict[str, Any] | None = None) -> dict[
         "dataset": path.stem,
         "source": "",
         "revision": "",
-        "download_date": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
+        "download_date": datetime.fromtimestamp(stat.st_mtime, tz=UTC).isoformat(),
         "license": "unknown",
         "language": "km",
         "subset": "",
@@ -62,7 +62,17 @@ def manifest_for(path: Path, *, existing: dict[str, Any] | None = None) -> dict[
     }
     if existing:
         # Preserve human-entered provenance; refresh only the derived fields.
-        for key in ("source", "revision", "license", "subset", "intended_use", "commercial_review_status", "download_date", "evaluation_only", "notes"):
+        for key in (
+            "source",
+            "revision",
+            "license",
+            "subset",
+            "intended_use",
+            "commercial_review_status",
+            "download_date",
+            "evaluation_only",
+            "notes",
+        ):
             if key in existing and existing[key] not in ("", None):
                 manifest[key] = existing[key]
     manifest.setdefault("evaluation_only", any(m in str(path).lower() for m in EVALUATION_MARKERS))
@@ -90,12 +100,17 @@ def build(root: Path, *, check_only: bool = False) -> dict[str, Any]:
         manifest = manifest_for(path, existing=existing)
 
         # Leakage rule: an evaluation-only source must never sit in a training path.
-        in_training_path = "/raw/public/" in str(path).replace("\\", "/") or "/cleaned/" in str(path).replace("\\", "/")
+        in_training_path = "/raw/public/" in str(path).replace("\\", "/") or "/cleaned/" in str(
+            path
+        ).replace("\\", "/")
         if manifest.get("evaluation_only") and in_training_path:
             problems.append(
                 f"EVALUATION LEAKAGE: {path} is marked evaluation_only but lives in a training path"
             )
-        if manifest.get("commercial_review_status") == "prohibited_for_commercial" and in_training_path:
+        if (
+            manifest.get("commercial_review_status") == "prohibited_for_commercial"
+            and in_training_path
+        ):
             problems.append(f"PROHIBITED SOURCE in a training path: {path}")
 
         manifests.append(manifest)
@@ -112,7 +127,7 @@ def build(root: Path, *, check_only: bool = False) -> dict[str, Any]:
         "evaluation_only_files": sum(1 for m in manifests if m.get("evaluation_only")),
         "problems": problems,
         "ok": not problems,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
     }
     if not check_only:
         write_json(MANIFEST_DIR / "_index.json", {"summary": summary, "manifests": manifests})

@@ -1,0 +1,208 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Tests must never reach a network service or a real model.
+  KHMERAI_EMBEDDING_BACKEND: hashing
+  KHMERAI_VECTOR_BACKEND: local
+  KHMERAI_RATE_LIMIT_ENABLED: "false"
+  KHMERAI_LOG_LEVEL: WARNING
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  quality:
+    name: Format, lint, types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/dev.txt
+      - name: Format check
+        run: ruff format --check .
+      - name: Lint
+        run: ruff check --output-format=github .
+      - name: Type check
+        run: mypy common preprocessing company_data rag server security evaluation training
+        continue-on-error: true   # advisory until the codebase is fully annotated
+
+  security:
+    name: Security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/dev.txt
+      - name: Secret scan
+        run: python -m security.secret_scanner . --fail-on high
+      - name: Security and prompt-injection suites
+        run: pytest security/tests -q
+      - name: Injection block-rate gate
+        run: pytest security/tests/test_prompt_injection.py::test_block_rate_meets_the_release_gate -q
+
+  test:
+    name: Tests (py${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/dev.txt
+      - name: Unit tests
+        run: pytest -q -m "not integration and not e2e"
+      - name: Integration tests
+        run: pytest tests/integration -q
+      - name: End-to-end scenarios
+        run: pytest tests/end_to_end -q
+      - name: Coverage
+        if: matrix.python == '3.11'
+        run: pytest --cov=. --cov-report=xml --cov-report=term:skip-covered -q
+      - uses: actions/upload-artifact@v4
+        if: matrix.python == '3.11'
+        with:
+          name: coverage
+          path: coverage.xml
+
+  configuration:
+    name: Configuration and prompts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/dev.txt
+      - name: Every config loads and resolves its `extends` chain
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from common.config import load_config
+          failures = []
+          for path in sorted(Path("configs").rglob("*.yaml")):
+              try:
+                  config = load_config(path)
+                  assert isinstance(config, dict) and config, f"{path} is empty"
+              except Exception as exc:
+                  failures.append(f"{path}: {type(exc).__name__}: {exc}")
+          if failures:
+              raise SystemExit("\n".join(failures))
+          print("all configs load")
+          PY
+      - name: Training configs are loadable
+        run: |
+          python - <<'PY'
+          from training.common import TrainingConfig
+          for name in ("sft_9b", "sft_4b", "cpt", "dpo"):
+              config = TrainingConfig.from_yaml(f"configs/training/{name}.yaml")
+              assert config.base_model.startswith("Qwen/")
+              print(f"{name}: {config.base_model} profile={config.memory_profile}")
+          PY
+      - name: Prompt contract
+        run: pytest security/tests/test_security_controls.py -q -k prompt
+      - name: Prompt budget fits the context window
+        run: |
+          python - <<'PY'
+          from rag.chunking import estimate_tokens
+          from server.chat_service import PromptBuilder
+          from server.config import Settings
+          report = PromptBuilder(Settings(admin_api_key="ci")).validate_budget()
+          print(report)
+          if report["warnings"]:
+              raise SystemExit("prompt budget warnings:\n" + "\n".join(report["warnings"]))
+          PY
+      - name: Golden sets are valid
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from evaluation.runner import load_golden
+          total = 0
+          for path in sorted(Path("evaluation/golden").glob("*.jsonl")):
+              items = load_golden(path)
+              ids = [i.id for i in items]
+              assert len(ids) == len(set(ids)), f"duplicate ids in {path}"
+              total += len(items)
+              print(f"{path.name}: {len(items)}")
+          print(f"total golden items: {total}")
+          PY
+      - name: Dataset provenance rules
+        run: python datasets/build_manifest.py --root data --check
+
+  training-dry-run:
+    name: Training dry run (no GPU)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/dev.txt
+      - name: Build a tiny SFT dataset and validate the training config
+        run: |
+          mkdir -p data/sft data/manifests
+          python - <<'PY'
+          import json, pathlib
+          rows = []
+          for i in range(30):
+              rows.append({
+                  "messages": [
+                      {"role": "user", "content": f"តើម៉ូដែល QN-450{i} មានការធានារយៈពេលប៉ុន្មាន?"},
+                      {"role": "assistant", "content": f"ម៉ូដែល QN-450{i} មានការធានារយៈពេល ២៤ ខែ ចាប់ពីថ្ងៃទិញ។"},
+                  ],
+                  "metadata": {"id": f"ci-{i}", "intent": "warranty", "language": "km"},
+              })
+          for name in ("train", "validation"):
+              pathlib.Path("data/sft", f"{name}.jsonl").write_text(
+                  "\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
+          from common.io import write_json
+          from preprocessing.pii_filter import build_pre_upload_report
+          write_json("data/manifests/pre_upload_report.json",
+                     build_pre_upload_report(["data/sft/train.jsonl"]))
+          PY
+          python training/train_sft.py --config configs/training/sft_9b.yaml --dry-run > /dev/null
+          python training/train_cpt.py --config configs/training/cpt.yaml --dry-run > /dev/null
+          echo "training configurations validated (no GPU work performed)"
+
+  # Deliberately NOT in CI (§Phase 23: no multi-hour or model-dependent jobs):
+  #   - model training              -> a GPU host or Colab
+  #   - behavioural injection suite -> needs a running Ollama; release gate
+  #   - load and Ollama tuning      -> needs the target Mac Studio
+  #   - full evaluation battery     -> needs a built model; release gate
+  # See docs/release_checklist.md for the gates that run outside CI.

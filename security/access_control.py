@@ -21,15 +21,15 @@ from typing import Any
 from company_data.schema import AccessLevel, Confidentiality, DocumentStatus
 
 __all__ = [
-    "Principal",
+    "ADMIN",
+    "AGENT",
+    "CUSTOMER",
     "AccessDecision",
-    "can_retrieve",
+    "Principal",
     "can_quote",
+    "can_retrieve",
     "can_see_field",
     "filter_metadata",
-    "CUSTOMER",
-    "AGENT",
-    "ADMIN",
 ]
 
 
@@ -61,9 +61,18 @@ _NEVER_EXPOSED = frozenset({"source_path", "content_hash", "owner", "access_leve
 # Fields an anonymous/customer principal may see.
 _CUSTOMER_VISIBLE = frozenset(
     {
-        "document_id", "document_title", "product_id", "product_name",
-        "service_id", "service_name", "category", "subcategory", "version",
-        "effective_date", "status", "language",
+        "document_id",
+        "document_title",
+        "product_id",
+        "product_name",
+        "service_id",
+        "service_name",
+        "category",
+        "subcategory",
+        "version",
+        "effective_date",
+        "status",
+        "language",
     }
 )
 
@@ -128,9 +137,7 @@ def can_quote(principal: Principal, metadata: dict[str, Any]) -> AccessDecision:
     """May this document's text be reproduced in an answer the customer reads?"""
     confidentiality = str(metadata.get("confidentiality", Confidentiality.INTERNAL))
     if principal.is_customer_facing and confidentiality not in _QUOTABLE:
-        return AccessDecision(
-            False, f"confidentiality={confidentiality} is not customer-quotable"
-        )
+        return AccessDecision(False, f"confidentiality={confidentiality} is not customer-quotable")
     return can_retrieve(principal, metadata)
 
 

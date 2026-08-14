@@ -141,8 +141,13 @@ def test_secrets_are_redacted_from_log_records() -> None:
 def test_pii_in_log_extras_is_redacted() -> None:
     formatter = JsonFormatter()
     record = logging.LogRecord(
-        name="test", level=logging.INFO, pathname=__file__, lineno=1,
-        msg="customer contact", args=(), exc_info=None,
+        name="test",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg="customer contact",
+        args=(),
+        exc_info=None,
     )
     record.customer_email = "someone@example.com"  # type: ignore[attr-defined]
     rendered = formatter.format(record)
@@ -153,8 +158,13 @@ def test_log_records_carry_the_request_id() -> None:
     formatter = JsonFormatter()
     with bind_request("req-abc123"):
         record = logging.LogRecord(
-            name="test", level=logging.INFO, pathname=__file__, lineno=1,
-            msg="hello", args=(), exc_info=None,
+            name="test",
+            level=logging.INFO,
+            pathname=__file__,
+            lineno=1,
+            msg="hello",
+            args=(),
+            exc_info=None,
         )
         payload = json.loads(formatter.format(record))
     assert payload["request_id"] == "req-abc123"
@@ -165,7 +175,11 @@ PUBLIC_DOC = {"confidentiality": "public", "status": "active"}
 INTERNAL_DOC = {"confidentiality": "internal", "status": "active"}
 RESTRICTED_DOC = {"confidentiality": "restricted", "status": "active"}
 EXPIRED_DOC = {"confidentiality": "public", "status": "expired"}
-QUARANTINED_DOC = {"confidentiality": "public", "status": "active", "validation_status": "quarantined"}
+QUARANTINED_DOC = {
+    "confidentiality": "public",
+    "status": "active",
+    "validation_status": "quarantined",
+}
 
 
 def test_customers_only_reach_public_documents() -> None:
@@ -268,9 +282,17 @@ def test_khmer_prompt_mandates_khmer_replies() -> None:
 def test_prompt_files_have_no_placeholder_left_unfilled() -> None:
     """Every `{{placeholder}}` must be one the PromptBuilder actually fills."""
     known = {
-        "company_name", "conversation_summary", "retrieved_context", "user_message",
-        "detected_product", "today", "escalation_reason", "hotline", "support_email",
-        "business_hours", "topic",
+        "company_name",
+        "conversation_summary",
+        "retrieved_context",
+        "user_message",
+        "detected_product",
+        "today",
+        "escalation_reason",
+        "hotline",
+        "support_email",
+        "business_hours",
+        "topic",
     }
     import re
 

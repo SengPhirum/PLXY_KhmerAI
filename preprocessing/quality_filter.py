@@ -26,18 +26,18 @@ from __future__ import annotations
 import math
 import re
 from collections import Counter
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from typing import Any
 
 from preprocessing.khmer_detection import ScriptProfile, TextLanguage, detect_language
-from preprocessing.khmer_script import iter_clusters, is_khmer_char
+from preprocessing.khmer_script import is_khmer_char, iter_clusters
 
 __all__ = [
-    "QualityThresholds",
     "QualityAssessment",
+    "QualityThresholds",
     "assess_quality",
-    "shannon_entropy",
     "repetition_ratio",
+    "shannon_entropy",
 ]
 
 _URL_RE = re.compile(r"https?://\S+|www\.\S+")
@@ -217,12 +217,13 @@ def _score_from_signals(signals: dict[str, float], thresholds: QualityThresholds
         "digits": (_inverse(signals["digit_ratio"], thresholds.max_digit_ratio), 0.05),
     }
     total_weight = sum(weight for _, weight in components.values())
-    return sum(min(1.0, max(0.0, value)) * weight for value, weight in components.values()) / total_weight
+    return (
+        sum(min(1.0, max(0.0, value)) * weight for value, weight in components.values())
+        / total_weight
+    )
 
 
-def assess_quality(
-    text: str, thresholds: QualityThresholds | None = None
-) -> QualityAssessment:
+def assess_quality(text: str, thresholds: QualityThresholds | None = None) -> QualityAssessment:
     """Score ``text`` and decide whether it is fit for training."""
     th = thresholds or QualityThresholds()
     language, profile = detect_language(text)
@@ -266,8 +267,7 @@ def assess_quality(
         (signals["duplicate_lines"] > th.max_duplicate_line_ratio, "duplicate_lines"),
         (signals["entropy"] > th.max_entropy, "high_entropy"),
         (
-            profile.khmer_syllables > 0
-            and not any(is_khmer_char(c) for c in text),
+            profile.khmer_syllables > 0 and not any(is_khmer_char(c) for c in text),
             "inconsistent_profile",
         ),
         (score < th.min_score, "low_score"),

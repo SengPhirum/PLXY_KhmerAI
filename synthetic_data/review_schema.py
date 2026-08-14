@@ -10,13 +10,13 @@ in the whole pipeline.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-__all__ = ["ReviewState", "ReviewPriority", "ReviewRecord", "review_priority", "TRAINABLE_STATES"]
+__all__ = ["TRAINABLE_STATES", "ReviewPriority", "ReviewRecord", "ReviewState", "review_priority"]
 
 
 class ReviewState(StrEnum):
@@ -30,10 +30,10 @@ TRAINABLE_STATES = frozenset({ReviewState.AUTO_CHECKED, ReviewState.HUMAN_APPROV
 
 
 class ReviewPriority(StrEnum):
-    CRITICAL = "critical"   # money, warranty, policy - a wrong answer is a liability
-    HIGH = "high"           # technical troubleshooting - a wrong answer damages hardware
-    MEDIUM = "medium"       # synthetic examples generally
-    LOW = "low"             # sampled spot checks
+    CRITICAL = "critical"  # money, warranty, policy - a wrong answer is a liability
+    HIGH = "high"  # technical troubleshooting - a wrong answer damages hardware
+    MEDIUM = "medium"  # synthetic examples generally
+    LOW = "low"  # sampled spot checks
 
 
 # Intent -> review priority (§33 "Prioritize human review for").
@@ -91,7 +91,7 @@ class ReviewRecord(BaseModel):
                 "state": ReviewState.HUMAN_APPROVED,
                 "reviewer": reviewer,
                 "comment": comment,
-                "reviewed_at": datetime.now(timezone.utc),
+                "reviewed_at": datetime.now(UTC),
             }
         )
 
@@ -101,7 +101,7 @@ class ReviewRecord(BaseModel):
                 "state": ReviewState.HUMAN_REJECTED,
                 "reviewer": reviewer,
                 "comment": comment,
-                "reviewed_at": datetime.now(timezone.utc),
+                "reviewed_at": datetime.now(UTC),
             }
         )
 

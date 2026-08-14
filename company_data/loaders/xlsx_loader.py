@@ -24,7 +24,9 @@ def _cell_to_text(value: Any) -> str:
     if value is None:
         return ""
     if isinstance(value, datetime):
-        return value.date().isoformat() if value.time() == datetime.min.time() else value.isoformat()
+        return (
+            value.date().isoformat() if value.time() == datetime.min.time() else value.isoformat()
+        )
     if isinstance(value, date):
         return value.isoformat()
     if isinstance(value, float) and value.is_integer():
@@ -60,7 +62,7 @@ def load_xlsx(
 
     try:
         workbook = openpyxl.load_workbook(str(target), read_only=True, data_only=True)
-    except Exception as exc:  # noqa: BLE001 - openpyxl raises many types
+    except Exception as exc:
         raise LoaderError(f"could not open XLSX {target}: {exc}") from exc
 
     documents: list[LoadedDocument] = []
@@ -98,8 +100,7 @@ def load_xlsx(
                 if not values:
                     continue
                 lines = [
-                    f"{mapping.get(header) or header}: {value}"
-                    for header, value in values.items()
+                    f"{mapping.get(header) or header}: {value}" for header, value in values.items()
                 ]
                 structured = {
                     mapping[header]: value

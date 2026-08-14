@@ -25,11 +25,11 @@ from common.logging import get_logger
 log = get_logger(__name__)
 
 __all__ = [
-    "ChatMLTemplate",
-    "render_conversation",
-    "build_completion_mask",
     "DEFAULT_SYSTEM_PROMPT_KM",
     "IGNORE_INDEX",
+    "ChatMLTemplate",
+    "build_completion_mask",
+    "render_conversation",
 ]
 
 IGNORE_INDEX = -100
@@ -68,7 +68,9 @@ class ChatMLTemplate:
 _DEFAULT_TEMPLATE = ChatMLTemplate()
 
 
-def _ensure_system(messages: list[dict[str, str]], system_prompt: str | None) -> list[dict[str, str]]:
+def _ensure_system(
+    messages: list[dict[str, str]], system_prompt: str | None
+) -> list[dict[str, str]]:
     if not system_prompt:
         return list(messages)
     if messages and messages[0].get("role") == "system":
@@ -139,7 +141,9 @@ def build_completion_mask(
                 "training.chat_template.not_prefix_stable",
                 extra={"message_index": index, "role": message.get("role", "?")},
             )
-        segment_text = with_message[len(prefix) :] if with_message.startswith(prefix) else with_message
+        segment_text = (
+            with_message[len(prefix) :] if with_message.startswith(prefix) else with_message
+        )
         segment = _encode(segment_text)
         input_ids.extend(segment)
         if message.get("role") == "assistant":

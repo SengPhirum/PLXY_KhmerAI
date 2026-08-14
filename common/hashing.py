@@ -21,17 +21,17 @@ import struct
 from collections.abc import Iterable, Sequence
 
 __all__ = [
-    "sha256_text",
+    "LSHIndex",
+    "MinHash",
+    "hamming_distance",
+    "jaccard_estimate",
+    "minhash_signature",
     "sha256_bytes",
     "sha256_file",
-    "stable_id",
+    "sha256_text",
     "shingles",
-    "MinHash",
-    "minhash_signature",
-    "jaccard_estimate",
-    "LSHIndex",
     "simhash",
-    "hamming_distance",
+    "stable_id",
 ]
 
 _MERSENNE_PRIME = (1 << 61) - 1
@@ -99,7 +99,7 @@ class MinHash:
     True
     """
 
-    __slots__ = ("num_perm", "seed", "_params", "_sig")
+    __slots__ = ("_params", "_sig", "num_perm", "seed")
 
     def __init__(self, num_perm: int = 128, seed: int = 20260814) -> None:
         if num_perm <= 0:
@@ -110,7 +110,7 @@ class MinHash:
         self._sig = [_MAX_HASH] * num_perm
 
     def update(self, item: str) -> None:
-        h = int.from_bytes(hashlib.sha1(item.encode("utf-8")).digest()[:8], "big")  # noqa: S324
+        h = int.from_bytes(hashlib.sha1(item.encode("utf-8")).digest()[:8], "big")
         sig = self._sig
         for i, (a, b) in enumerate(self._params):
             value = ((a * h + b) % _MERSENNE_PRIME) & _MAX_HASH
@@ -213,7 +213,7 @@ def simhash(tokens: Iterable[str], bits: int = 64) -> int:
     seen = False
     for token in tokens:
         seen = True
-        h = int.from_bytes(hashlib.md5(token.encode("utf-8")).digest(), "big")  # noqa: S324
+        h = int.from_bytes(hashlib.md5(token.encode("utf-8")).digest(), "big")
         for i in range(bits):
             vector[i] += 1 if (h >> i) & 1 else -1
     if not seen:

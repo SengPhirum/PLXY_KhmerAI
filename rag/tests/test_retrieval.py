@@ -81,9 +81,7 @@ def test_lexical_retrieval_finds_the_exact_model_number(retriever: Retriever) ->
 
 
 def test_product_filter_restricts_results(retriever: Retriever) -> None:
-    result = retriever.retrieve(
-        "តម្លៃប៉ុន្មាន?", filters=RetrievalFilters(product_id="RF-22B")
-    )
+    result = retriever.retrieve("តម្លៃប៉ុន្មាន?", filters=RetrievalFilters(product_id="RF-22B"))
     for chunk in result.chunks:
         assert chunk.product_id == "RF-22B"
 
@@ -128,9 +126,7 @@ def test_filtering_happens_before_top_k(retriever: Retriever) -> None:
     retriever.config.min_score_to_answer = 0.0
     retriever.config.medium_confidence_score = 0.0
     unfiltered = retriever.retrieve("ការធានា")
-    filtered = retriever.retrieve(
-        "ការធានា", filters=RetrievalFilters(product_id="RF-22B"), top_k=2
-    )
+    filtered = retriever.retrieve("ការធានា", filters=RetrievalFilters(product_id="RF-22B"), top_k=2)
     assert not unfiltered.is_empty
     assert filtered.chunks, "post-filtering emptied the result set"
     assert all(c.product_id == "RF-22B" for c in filtered.chunks)
@@ -178,17 +174,17 @@ def test_injected_chunks_are_dropped(
 
 # --- conflicts --------------------------------------------------------------
 def _chunk(**kw: object) -> RetrievedChunk:
-    base = dict(
-        chunk_id="c",
-        document_id="d",
-        text="",
-        score=1.0,
-        product_id="QN-4500A",
-        category="warranty",
-        status="active",
-        version="1.0",
-        effective_date="2026-01-01",
-    )
+    base: dict[str, object] = {
+        "chunk_id": "c",
+        "document_id": "d",
+        "text": "",
+        "score": 1.0,
+        "product_id": "QN-4500A",
+        "category": "warranty",
+        "status": "active",
+        "version": "1.0",
+        "effective_date": "2026-01-01",
+    }
     base.update(kw)
     return RetrievedChunk(**base)  # type: ignore[arg-type]
 
@@ -241,9 +237,7 @@ def test_retriever_surfaces_conflicts_end_to_end(
     retriever = Retriever(
         store,
         embedder,
-        config=RetrievalConfig(
-            top_k=6, min_score_to_answer=0.0, medium_confidence_score=0.0
-        ),
+        config=RetrievalConfig(top_k=6, min_score_to_answer=0.0, medium_confidence_score=0.0),
         index_version=manifest.index_version,
     )
     result = retriever.retrieve("តើ QN-4500A ធានារយៈពេលប៉ុន្មានខែ?")
@@ -276,9 +270,7 @@ def test_context_block_neutralises_a_delimiter_escape() -> None:
 
 def test_grounding_accepts_a_faithful_answer(retriever: Retriever) -> None:
     result = retriever.retrieve("ការធានា QN-4500A")
-    report = verify_grounding(
-        "ម៉ូដែល QN-4500A មានការធានារយៈពេល ២៤ ខែ ចាប់ពីថ្ងៃទិញ។ [1]", result.chunks
-    )
+    report = verify_grounding("ម៉ូដែល QN-4500A មានការធានារយៈពេល ២៤ ខែ ចាប់ពីថ្ងៃទិញ។ [1]", result.chunks)
     assert report.is_grounded
     assert report.grounding_precision == 1.0
 
@@ -316,9 +308,7 @@ def test_polite_sentences_are_not_treated_as_claims(retriever: Retriever) -> Non
 
 
 # --- reindex / rollback -----------------------------------------------------
-def test_build_test_activate_and_rollback(
-    documents: list[CompanyDocument], tmp_path: Path
-) -> None:
+def test_build_test_activate_and_rollback(documents: list[CompanyDocument], tmp_path: Path) -> None:
     from common.io import write_jsonl
 
     records = tmp_path / "records.jsonl"
@@ -328,11 +318,15 @@ def test_build_test_activate_and_rollback(
     settings.embedding_backend = "hashing"
     settings.embedding_dim = 256
 
-    first = reindex(records, settings=settings, index_version="2026-08-14.1", activate_on_success=True)
+    first = reindex(
+        records, settings=settings, index_version="2026-08-14.1", activate_on_success=True
+    )
     assert first.activated
     assert active_version(tmp_path / "index") == "2026-08-14.1"
 
-    second = reindex(records, settings=settings, index_version="2026-08-14.2", activate_on_success=True)
+    second = reindex(
+        records, settings=settings, index_version="2026-08-14.2", activate_on_success=True
+    )
     assert second.activated
     assert active_version(tmp_path / "index") == "2026-08-14.2"
 
@@ -341,7 +335,7 @@ def test_build_test_activate_and_rollback(
 
     versions = list_versions(tmp_path / "index")
     assert {v["index_version"] for v in versions} == {"2026-08-14.1", "2026-08-14.2"}
-    assert [v for v in versions if v["active"]][0]["index_version"] == "2026-08-14.1"
+    assert next(v for v in versions if v["active"])["index_version"] == "2026-08-14.1"
 
 
 def test_activation_is_atomic_and_readable_throughout(
@@ -417,7 +411,9 @@ def test_regression_gate_passes_for_answerable_questions(
     settings = IngestionSettings(index_root=index_dir, allow_non_semantic_embedder=True)
     settings.embedding_backend = "hashing"
     settings.embedding_dim = 256
-    report = run_regression(version, golden, index_root=index_dir, settings=settings, min_recall=0.5)
+    report = run_regression(
+        version, golden, index_root=index_dir, settings=settings, min_recall=0.5
+    )
     assert report["ran"]
     assert report["passed"], report
 

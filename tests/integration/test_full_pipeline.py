@@ -8,7 +8,6 @@ the fixtures written by this test.
 
 from __future__ import annotations
 
-import json
 from datetime import date
 from pathlib import Path
 
@@ -19,7 +18,7 @@ from company_data.validate import ingest_directory
 from rag.citations import build_context_block, verify_grounding
 from rag.embeddings import HashingEmbedder
 from rag.ingestion import IngestionSettings, build_index
-from rag.reindex import activate, active_version, reindex, rollback
+from rag.reindex import active_version, reindex, rollback
 from rag.retrieval import RetrievalConfig, Retriever
 from rag.schemas import RetrievalFilters
 from rag.vector_store import LocalVectorStore
@@ -125,8 +124,8 @@ def test_documents_to_grounded_answer(company_docs: Path, tmp_path: Path) -> Non
     retrievable = [d for d in documents if d.is_retrievable(date(2026, 8, 14))]
     titles = {d.document_title for d in retrievable}
     assert "គោលការណ៍ធានា QN-4500A" in titles
-    assert "នីតិវិធីផ្ទៃក្នុង" not in titles      # internal
-    assert "ការផ្តល់ជូនពិសេស" not in titles       # expired
+    assert "នីតិវិធីផ្ទៃក្នុង" not in titles  # internal
+    assert "ការផ្តល់ជូនពិសេស" not in titles  # expired
 
     # --- 2. write canonical records --------------------------------------
     records = tmp_path / "records.jsonl"
@@ -139,7 +138,9 @@ def test_documents_to_grounded_answer(company_docs: Path, tmp_path: Path) -> Non
     settings.embedding_backend = "hashing"
     settings.embedding_dim = 256
 
-    result = reindex(records, settings=settings, index_version="2026-08-14.1", activate_on_success=True)
+    result = reindex(
+        records, settings=settings, index_version="2026-08-14.1", activate_on_success=True
+    )
     assert result.activated
     assert active_version(index_root) == "2026-08-14.1"
 

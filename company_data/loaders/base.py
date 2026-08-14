@@ -8,14 +8,14 @@ from pathlib import Path
 from typing import Any
 
 __all__ = [
-    "LoadedDocument",
-    "LoaderError",
-    "LoaderDependencyError",
-    "UnsupportedFormatError",
+    "MAX_FILE_BYTES",
     "FileTooLargeError",
+    "LoadedDocument",
+    "LoaderDependencyError",
+    "LoaderError",
+    "UnsupportedFormatError",
     "check_file",
     "require",
-    "MAX_FILE_BYTES",
 ]
 
 MAX_FILE_BYTES = int(os.environ.get("KHMERAI_COMPANY_MAX_FILE_MB", "50")) * 1024 * 1024
@@ -45,7 +45,7 @@ class LoadedDocument:
     source_path: str
     title: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
-    part: str = ""          # sheet name, page range, CSV row key, ...
+    part: str = ""  # sheet name, page range, CSV row key, ...
     loader: str = ""
 
     def __post_init__(self) -> None:
@@ -59,7 +59,7 @@ class LoadedDocument:
 
 def require(module: str, extra: str = "rag") -> Any:
     """Import an optional parser or raise a helpful error."""
-    import importlib  # noqa: PLC0415 - only needed on this path
+    import importlib
 
     try:
         return importlib.import_module(module)

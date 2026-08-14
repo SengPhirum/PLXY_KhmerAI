@@ -34,7 +34,6 @@ from training.dataset_loader import (
     conversation_text,
     describe_mixture,
     load_preference_pairs,
-    load_sft_records,
     split_records,
     validate_records,
 )
@@ -51,12 +50,17 @@ class FakeTokenizer:
         return {"input_ids": [ord(c) % 5000 for c in text]}
 
     def apply_chat_template(
-        self, messages: list[dict[str, str]], tokenize: bool = False, add_generation_prompt: bool = False
+        self,
+        messages: list[dict[str, str]],
+        tokenize: bool = False,
+        add_generation_prompt: bool = False,
     ) -> str:
         return ChatMLTemplate().render(messages, add_generation_prompt=add_generation_prompt)
 
 
-def _record(user: str, assistant: str, *, intent: str = "warranty", rid: str = "r1", **meta: object) -> SFTRecord:
+def _record(
+    user: str, assistant: str, *, intent: str = "warranty", rid: str = "r1", **meta: object
+) -> SFTRecord:
     metadata = {"id": rid, "intent": intent, "language": "km"}
     metadata.update(meta)
     return SFTRecord.model_validate(
@@ -147,8 +151,16 @@ def test_run_manifest_records_everything_required(tmp_path: Path) -> None:
         TrainingConfig(run_name="t"), stage="sft", dataset_paths={"train": str(dataset)}
     )
     for key in (
-        "stage", "base_model", "model_revision", "datasets", "preprocessing_version",
-        "code_commit", "seed", "hyperparameters", "environment", "hardware",
+        "stage",
+        "base_model",
+        "model_revision",
+        "datasets",
+        "preprocessing_version",
+        "code_commit",
+        "seed",
+        "hyperparameters",
+        "environment",
+        "hardware",
     ):
         assert key in manifest, f"run manifest is missing {key}"
     assert manifest["datasets"]["train"]["sha256"]
@@ -169,7 +181,10 @@ def test_upload_gate_blocks_a_missing_report(tmp_path: Path) -> None:
 
 def test_upload_gate_blocks_an_unapproved_report(tmp_path: Path) -> None:
     report = tmp_path / "report.json"
-    report.write_text(json.dumps({"approved": False, "blocking_findings": {"aws_access_key": 1}}), encoding="utf-8")
+    report.write_text(
+        json.dumps({"approved": False, "blocking_findings": {"aws_access_key": 1}}),
+        encoding="utf-8",
+    )
     with pytest.raises(RuntimeError, match="did NOT approve"):
         assert_upload_approved(report)
 
@@ -274,13 +289,20 @@ def test_empty_conversation() -> None:
 def test_sft_schema_rejects_malformed_records() -> None:
     with pytest.raises(ValueError, match="final message"):
         SFTRecord.model_validate(
-            {"messages": [{"role": "user", "content": "a"}, {"role": "user", "content": "b"}],
-             "metadata": {"id": "x"}}
+            {
+                "messages": [{"role": "user", "content": "a"}, {"role": "user", "content": "b"}],
+                "metadata": {"id": "x"},
+            }
         )
     with pytest.raises(ValueError, match="unknown intent"):
         SFTRecord.model_validate(
-            {"messages": [{"role": "user", "content": "a"}, {"role": "assistant", "content": "b"}],
-             "metadata": {"id": "x", "intent": "not_a_real_intent"}}
+            {
+                "messages": [
+                    {"role": "user", "content": "a"},
+                    {"role": "assistant", "content": "b"},
+                ],
+                "metadata": {"id": "x", "intent": "not_a_real_intent"},
+            }
         )
 
 
@@ -288,7 +310,7 @@ def test_validate_removes_duplicates_and_low_quality() -> None:
     records = [
         _record("តើធានាប៉ុន្មានខែ?", ANSWER, rid="a"),
         _record("តើធានាប៉ុន្មានខែ?", ANSWER, rid="b"),  # exact duplicate
-        _record("តើតម្លៃប៉ុន្មាន?", "ok", rid="c"),      # answer too short / not Khmer
+        _record("តើតម្លៃប៉ុន្មាន?", "ok", rid="c"),  # answer too short / not Khmer
     ]
     kept, stats = validate_records(records)
     assert stats.total == 3
@@ -325,7 +347,7 @@ def test_split_is_deterministic_and_stable() -> None:
         assert [r.metadata.id for r in first[name]] == [r.metadata.id for r in second[name]]
 
     # Adding records must not move existing ones between splits.
-    grown = split_records(records + [_record("សំណួរថ្មី?", ANSWER + " new", rid="new")])
+    grown = split_records([*records, _record("សំណួរថ្មី?", ANSWER + " new", rid="new")])
     original_train = {r.metadata.id for r in first["train"]}
     grown_train = {r.metadata.id for r in grown["train"]}
     assert original_train <= grown_train
@@ -341,16 +363,16 @@ def test_adversarial_records_get_their_own_split() -> None:
 
 
 def test_split_ratios_must_sum_to_one() -> None:
-    with pytest.raises(ValueError, match="sum to 1.0"):
+    with pytest.raises(ValueError, match=r"sum to 1\.0"):
         split_records([], ratios={"train": 0.5, "test": 0.2})
 
 
 def test_build_splits_writes_files_and_checks_leakage(tmp_path: Path) -> None:
     source = tmp_path / "sft.jsonl"
-    records = [_record(f"សំណួរទី {i} អំពីការធានាផលិតផល?", ANSWER + f" លេខ {i}", rid=str(i)) for i in range(40)]
-    source.write_text(
-        "\n".join(r.model_dump_json() for r in records) + "\n", encoding="utf-8"
-    )
+    records = [
+        _record(f"សំណួរទី {i} អំពីការធានាផលិតផល?", ANSWER + f" លេខ {i}", rid=str(i)) for i in range(40)
+    ]
+    source.write_text("\n".join(r.model_dump_json() for r in records) + "\n", encoding="utf-8")
 
     stats = build_splits([source], tmp_path / "splits", report_path=tmp_path / "report.json")
     assert stats.valid > 0
@@ -364,7 +386,9 @@ def test_describe_mixture_reports_the_delta_from_target() -> None:
     _, stats = validate_records(
         [
             _record("តើធានាប៉ុន្មានខែ?", ANSWER, intent="warranty", rid="a"),
-            _record("តើតម្លៃប៉ុន្មានដែរ?", "តម្លៃលក់រាយគឺ ៥២០ ដុល្លារ រួមបញ្ចូលពន្ធ។", intent="pricing", rid="b"),
+            _record(
+                "តើតម្លៃប៉ុន្មានដែរ?", "តម្លៃលក់រាយគឺ ៥២០ ដុល្លារ រួមបញ្ចូលពន្ធ។", intent="pricing", rid="b"
+            ),
         ]
     )
     mixture = describe_mixture(stats)

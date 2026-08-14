@@ -22,7 +22,7 @@ import os
 import platform
 import shutil
 import socket
-import subprocess  # noqa: S404 - fixed argv, no shell
+import subprocess
 import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -35,14 +35,26 @@ if str(_REPO_ROOT) not in sys.path:
 GREEN, YELLOW, RED, DIM, RESET = "\033[32m", "\033[33m", "\033[31m", "\033[2m", "\033[0m"
 
 REQUIRED_DIRECTORIES = (
-    "configs", "prompts", "data/raw/public", "data/raw/company", "data/interim",
-    "data/cleaned", "data/sft", "data/manifests", "data/index",
-    "evaluation/golden", "reports",
+    "configs",
+    "prompts",
+    "data/raw/public",
+    "data/raw/company",
+    "data/interim",
+    "data/cleaned",
+    "data/sft",
+    "data/manifests",
+    "data/index",
+    "evaluation/golden",
+    "reports",
 )
 # (name, required, description)
 ENVIRONMENT_VARIABLES = (
     ("KHMERAI_ENV", False, "development | staging | production"),
-    ("KHMERAI_ADMIN_API_KEY", False, "required in production; admin endpoints refuse to run without it"),
+    (
+        "KHMERAI_ADMIN_API_KEY",
+        False,
+        "required in production; admin endpoints refuse to run without it",
+    ),
     ("KHMERAI_OLLAMA_BASE_URL", False, "defaults to http://127.0.0.1:11434"),
     ("KHMERAI_OLLAMA_MODEL", False, "defaults to khmer-support-9b"),
     ("KHMERAI_EMBEDDING_BACKEND", False, "ollama | sentence_transformers | hashing"),
@@ -56,7 +68,7 @@ MAX_PYTHON = (3, 12)
 @dataclass
 class Check:
     name: str
-    status: str          # ok | warn | fail | info
+    status: str  # ok | warn | fail | info
     detail: str
     fix: str = ""
     data: dict[str, Any] = field(default_factory=dict)
@@ -64,9 +76,7 @@ class Check:
 
 def _run(argv: list[str], timeout: float = 5.0) -> tuple[int, str]:
     try:
-        result = subprocess.run(  # noqa: S603
-            argv, capture_output=True, text=True, timeout=timeout, check=False
-        )
+        result = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, check=False)
     except (OSError, subprocess.SubprocessError) as exc:
         return 1, str(exc)
     return result.returncode, (result.stdout or result.stderr).strip()
@@ -91,14 +101,18 @@ def check_virtualenv() -> Check:
     if in_venv:
         return Check("virtualenv", "ok", sys.prefix)
     return Check(
-        "virtualenv", "warn", "not running inside a virtual environment",
+        "virtualenv",
+        "warn",
+        "not running inside a virtual environment",
         "make setup && source .venv/bin/activate",
     )
 
 
 def check_os() -> Check:
     return Check(
-        "os", "ok", f"{platform.system()} {platform.release()} ({platform.machine()})",
+        "os",
+        "ok",
+        f"{platform.system()} {platform.release()} ({platform.machine()})",
         data={"system": platform.system(), "machine": platform.machine()},
     )
 
@@ -125,12 +139,16 @@ def check_memory() -> Check:
         return Check("memory", "ok", f"{total_gb:.0f} GB", data={"total_gb": round(total_gb, 1)})
     if total_gb >= 16:
         return Check(
-            "memory", "warn", f"{total_gb:.0f} GB - the 9B profile assumes 48 GB",
+            "memory",
+            "warn",
+            f"{total_gb:.0f} GB - the 9B profile assumes 48 GB",
             "Use the 4B model, or lower OLLAMA_NUM_PARALLEL and OLLAMA_CONTEXT_LENGTH.",
             {"total_gb": round(total_gb, 1)},
         )
     return Check(
-        "memory", "fail", f"{total_gb:.0f} GB is not enough to serve a 4B model",
+        "memory",
+        "fail",
+        f"{total_gb:.0f} GB is not enough to serve a 4B model",
         data={"total_gb": round(total_gb, 1)},
     )
 
@@ -143,8 +161,11 @@ def check_disk() -> Check:
         return Check("disk", "ok", f"{free_gb:.0f} GB free", data=data)
     if free_gb >= 20:
         return Check(
-            "disk", "warn", f"{free_gb:.0f} GB free - GGUF conversion needs roughly 60 GB",
-            "Free space, or export on a different host.", data,
+            "disk",
+            "warn",
+            f"{free_gb:.0f} GB free - GGUF conversion needs roughly 60 GB",
+            "Free space, or export on a different host.",
+            data,
         )
     return Check("disk", "fail", f"{free_gb:.0f} GB free", "Free at least 20 GB.", data)
 
@@ -155,17 +176,27 @@ def check_ollama() -> list[Check]:
     if binary is None:
         checks.append(
             Check(
-                "ollama.binary", "warn", "not installed",
+                "ollama.binary",
+                "warn",
+                "not installed",
                 "brew install ollama   # macOS\n    curl -fsSL https://ollama.com/install.sh | sh",
             )
         )
     else:
         code, out = _run([binary, "--version"])
         checks.append(
-            Check("ollama.binary", "ok" if code == 0 else "warn", out.splitlines()[0] if out else binary)
+            Check(
+                "ollama.binary",
+                "ok" if code == 0 else "warn",
+                out.splitlines()[0] if out else binary,
+            )
         )
 
-    host = os.environ.get("OLLAMA_HOST", "127.0.0.1:11434").replace("http://", "").replace("https://", "")
+    host = (
+        os.environ.get("OLLAMA_HOST", "127.0.0.1:11434")
+        .replace("http://", "")
+        .replace("https://", "")
+    )
     hostname, _, port = host.partition(":")
     port_number = int(port) if port.isdigit() else 11434
     try:
@@ -177,7 +208,9 @@ def check_ollama() -> list[Check]:
     if not reachable:
         checks.append(
             Check(
-                "ollama.daemon", "warn", f"not reachable on {host}",
+                "ollama.daemon",
+                "warn",
+                f"not reachable on {host}",
                 "bash ollama/start_server.sh",
             )
         )
@@ -185,11 +218,11 @@ def check_ollama() -> list[Check]:
 
     checks.append(Check("ollama.daemon", "ok", f"reachable on {host}"))
     try:
-        import urllib.request  # noqa: PLC0415
+        import urllib.request
 
-        with urllib.request.urlopen(f"http://{host}/api/tags", timeout=3) as response:  # noqa: S310
+        with urllib.request.urlopen(f"http://{host}/api/tags", timeout=3) as response:
             models = [m.get("name", "") for m in json.load(response).get("models", [])]
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         checks.append(Check("ollama.models", "warn", f"could not list models: {exc}"))
         return checks
 
@@ -199,9 +232,11 @@ def check_ollama() -> list[Check]:
     else:
         checks.append(
             Check(
-                "ollama.models", "warn",
+                "ollama.models",
+                "warn",
                 f"no khmer-support model ({len(models)} other model(s) present)",
-                "bash ollama/create_model.sh", {"models": models},
+                "bash ollama/create_model.sh",
+                {"models": models},
             )
         )
     return checks
@@ -212,7 +247,9 @@ def check_directories() -> Check:
     if not missing:
         return Check("directories", "ok", f"all {len(REQUIRED_DIRECTORIES)} present")
     return Check(
-        "directories", "warn", f"missing: {', '.join(missing)}",
+        "directories",
+        "warn",
+        f"missing: {', '.join(missing)}",
         "mkdir -p " + " ".join(missing),
     )
 
@@ -226,7 +263,12 @@ def check_environment() -> list[Check]:
             checks.append(Check("env.file", "ok", f".env present (mode {mode})"))
         else:
             checks.append(
-                Check("env.file", "warn", f".env is mode {mode} - it contains secrets", "chmod 600 .env")
+                Check(
+                    "env.file",
+                    "warn",
+                    f".env is mode {mode} - it contains secrets",
+                    "chmod 600 .env",
+                )
             )
     else:
         checks.append(Check("env.file", "warn", ".env not found", "cp .env.example .env"))
@@ -249,11 +291,19 @@ def check_accelerator() -> Check:
         code, out = _run(["system_profiler", "SPDisplaysDataType"], timeout=15)
         if code == 0 and out:
             chipset = next(
-                (line.split(":", 1)[1].strip() for line in out.splitlines() if "Chipset Model" in line),
+                (
+                    line.split(":", 1)[1].strip()
+                    for line in out.splitlines()
+                    if "Chipset Model" in line
+                ),
                 "",
             )
             cores = next(
-                (line.split(":", 1)[1].strip() for line in out.splitlines() if "Total Number of Cores" in line),
+                (
+                    line.split(":", 1)[1].strip()
+                    for line in out.splitlines()
+                    if "Total Number of Cores" in line
+                ),
                 "",
             )
             detail = f"Metal: {chipset or 'Apple GPU'}" + (f", {cores} GPU cores" if cores else "")
@@ -261,22 +311,28 @@ def check_accelerator() -> Check:
         return Check("accelerator", "info", "Apple silicon; Metal details unavailable")
 
     try:
-        import torch  # noqa: PLC0415
+        import torch
 
         if torch.cuda.is_available():
             names = [torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())]
             memory = round(torch.cuda.get_device_properties(0).total_memory / 1e9, 1)
             return Check(
-                "accelerator", "ok", f"CUDA {torch.version.cuda}: {', '.join(names)} ({memory} GB)",
+                "accelerator",
+                "ok",
+                f"CUDA {torch.version.cuda}: {', '.join(names)} ({memory} GB)",
                 data={"gpus": names, "vram_gb": memory},
             )
         return Check(
-            "accelerator", "info", "torch is installed but no CUDA device is visible",
+            "accelerator",
+            "info",
+            "torch is installed but no CUDA device is visible",
             "Training needs a GPU. On Colab: Runtime -> Change runtime type -> GPU.",
         )
     except ImportError:
         return Check(
-            "accelerator", "info", "torch not installed (serving does not need it)",
+            "accelerator",
+            "info",
+            "torch not installed (serving does not need it)",
             "pip install -r requirements/training.txt   # only on a training host",
         )
 
@@ -302,7 +358,8 @@ def check_dependencies() -> list[Check]:
             requirement = "base" if group == "core" else group
             checks.append(
                 Check(
-                    f"deps.{group}", "warn" if group != "core" else "fail",
+                    f"deps.{group}",
+                    "warn" if group != "core" else "fail",
                     f"missing: {', '.join(missing)}",
                     f"pip install -r requirements/{requirement}.txt",
                 )
@@ -314,7 +371,9 @@ def check_index() -> Check:
     pointer = _REPO_ROOT / "data" / "index" / "ACTIVE"
     if not (pointer.exists() or pointer.is_symlink()):
         return Check(
-            "knowledge_index", "warn", "no active index",
+            "knowledge_index",
+            "warn",
+            "no active index",
             "python -m company_data.validate --input data/raw/company "
             "--output data/interim/company_records.jsonl --report data/manifests/company_validation.json\n"
             "    python -m rag.reindex --input data/interim/company_records.jsonl --activate",
@@ -328,7 +387,8 @@ def check_index() -> Check:
     if manifest.is_file():
         data = json.loads(manifest.read_text(encoding="utf-8"))
         return Check(
-            "knowledge_index", "ok",
+            "knowledge_index",
+            "ok",
             f"{version}: {data.get('chunks', 0)} chunks from {data.get('documents', 0)} documents",
             data={"index_version": version},
         )
@@ -336,7 +396,13 @@ def check_index() -> Check:
 
 
 def run_all() -> list[Check]:
-    checks: list[Check] = [check_python(), check_virtualenv(), check_os(), check_memory(), check_disk()]
+    checks: list[Check] = [
+        check_python(),
+        check_virtualenv(),
+        check_os(),
+        check_memory(),
+        check_disk(),
+    ]
     checks += check_dependencies()
     checks += check_ollama()
     checks.append(check_accelerator())
@@ -379,7 +445,9 @@ def main(argv: list[str] | None = None) -> int:
         if failures:
             print(f"\n  {RED}Resolve the failures above before continuing.{RESET}")
         elif warnings:
-            print(f"\n  {YELLOW}Warnings are expected on a fresh checkout - see the fixes above.{RESET}")
+            print(
+                f"\n  {YELLOW}Warnings are expected on a fresh checkout - see the fixes above.{RESET}"
+            )
         else:
             print(f"\n  {GREEN}Everything is ready.{RESET}")
 
