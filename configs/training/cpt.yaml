@@ -1,0 +1,60 @@
+extends: ../models/qwen35_9b.yaml
+
+# =============================================================================
+# Phase 6 - OPTIONAL Khmer continued pretraining
+#
+# DO NOT RUN THIS until the Phase 5 baseline shows a measurable Khmer
+# deficiency. Decide with:
+#   python training/train_cpt.py --decide before.json after.json
+# =============================================================================
+training:
+  run_name: khmer-cpt-9b-v1
+  base_model: Qwen/Qwen3.5-9B
+  model_revision: main
+  output_dir: outputs/cpt_9b
+  dataset_path: data/deduped/khmer_corpus.jsonl
+  seed: 20260814
+
+  lora_rank: 64
+  lora_alpha: 128
+  lora_dropout: 0.0               # no dropout for LM continuation
+  lora_target_modules: []
+
+  # Deliberately an order of magnitude below the SFT rate: CPT on a strong base
+  # model damages it far more easily than it improves it.
+  learning_rate: 1.0e-5
+  max_steps: 2000
+  warmup_ratio: 0.03
+  lr_scheduler_type: cosine
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  optim: paged_adamw_8bit
+
+  memory_profile: "40gb"
+  max_seq_length: 4096
+  load_in_4bit: true
+  bf16: true
+  gradient_checkpointing: true
+
+  logging_steps: 20
+  save_steps: 250
+  save_total_limit: 4
+  resume_from_checkpoint: true
+  report_to: none
+
+corpus:
+  # §Phase 6: start with 50M-200M high-quality tokens, NOT the whole corpus.
+  target_tokens_min: 50_000_000
+  target_tokens_max: 200_000_000
+  mixture:
+    fineweb2_khmer: 0.50
+    khmer_wikipedia: 0.25
+    culturax_khmer: 0.25
+  streaming: true
+
+regression_probes:
+  # Monitored every eval step; a material regression stops the run (§Phase 6).
+  english: evaluation/golden/khmer_general.jsonl
+  reasoning: evaluation/golden/customer_support.jsonl
+  instruction_following: evaluation/golden/multiturn.jsonl
+  code_switch: evaluation/golden/code_switch.jsonl

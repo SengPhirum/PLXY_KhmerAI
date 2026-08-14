@@ -7,7 +7,7 @@ retrieval:
   top_k: 6                       # chunks placed in the model context
   candidate_k: 24                # candidates fetched from each retriever before fusion
   use_lexical: true              # BM25 over Khmer syllable n-grams
-  max_context_tokens: 3200       # must match configs/base.yaml context.reserved_for_retrieved_context
+  max_context_tokens: 2200       # must match configs/base.yaml context.reserved_for_retrieved_context
   detect_conflicts: true
 
   fusion:

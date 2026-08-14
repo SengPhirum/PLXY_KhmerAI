@@ -1,0 +1,19 @@
+{
+  "dataset": "belebele_khmer",
+  "source": "facebook/belebele",
+  "revision": "unresolved",
+  "download_date": "2026-08-14T08:03:04.045039+00:00",
+  "license": "see the dataset card",
+  "language": "km",
+  "subset": "khm_Khmr",
+  "split": "test",
+  "raw_records": 0,
+  "raw_bytes": 0,
+  "sha256": "",
+  "intended_use": "evaluation_only",
+  "commercial_review_status": "evaluation_only",
+  "output_path": "/home/user/PLXY_KhmerAI/data/evaluation/public/belebele_khmer.jsonl",
+  "evaluation_only": true,
+  "downloaded": false,
+  "notes": "DRY RUN - would stream facebook/belebele (subset=khm_Khmr, split=test) to /home/user/PLXY_KhmerAI/data/evaluation/public/belebele_khmer.jsonl"
+}

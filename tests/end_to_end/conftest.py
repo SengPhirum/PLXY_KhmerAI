@@ -1,4 +1,10 @@
-"""Test harness for the API: a fake Ollama plus a real, tiny knowledge index.
+"""Fixtures for the Phase 24 end-to-end scenarios.
+
+Re-exports the API harness from ``server/tests/conftest.py`` so the e2e suite
+runs against the same fake Ollama and the same real index.
+
+Original docstring:
+Test harness for the API: a fake Ollama plus a real, tiny knowledge index.
 
 The fake Ollama implements the same interface and the same admission-control
 semantics as the real client, so concurrency, queueing, timeouts and streaming

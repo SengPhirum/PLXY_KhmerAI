@@ -1,0 +1,19 @@
+{
+  "dataset": "flores_plus_khmer",
+  "source": "openlanguagedata/flores_plus",
+  "revision": "unresolved",
+  "download_date": "2026-08-14T08:03:04.046151+00:00",
+  "license": "see the dataset card",
+  "language": "km",
+  "subset": "khm_Khmr",
+  "split": "devtest",
+  "raw_records": 0,
+  "raw_bytes": 0,
+  "sha256": "",
+  "intended_use": "evaluation_only",
+  "commercial_review_status": "evaluation_only",
+  "output_path": "/home/user/PLXY_KhmerAI/data/evaluation/public/flores_plus_khmer.jsonl",
+  "evaluation_only": true,
+  "downloaded": false,
+  "notes": "DRY RUN - would stream openlanguagedata/flores_plus (subset=khm_Khmr, split=devtest) to /home/user/PLXY_KhmerAI/data/evaluation/public/flores_plus_khmer.jsonl"
+}

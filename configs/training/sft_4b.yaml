@@ -1,0 +1,41 @@
+extends: ../models/qwen35_4b.yaml
+
+# =============================================================================
+# Phase 8 - QLoRA SFT for the 4B candidate
+#   python training/train_sft.py --config configs/training/sft_4b.yaml
+# =============================================================================
+training:
+  run_name: khmer-support-sft-4b-v1
+  base_model: Qwen/Qwen3.5-4B
+  model_revision: main
+  output_dir: outputs/sft_4b
+  dataset_path: data/sft/train.jsonl
+  eval_dataset_path: data/sft/validation.jsonl
+  seed: 20260814
+
+  lora_rank: 32
+  lora_alpha: 64
+  lora_dropout: 0.05
+  lora_target_modules: []
+
+  learning_rate: 2.0e-4           # a smaller model tolerates a higher LR
+  num_train_epochs: 3.0
+  warmup_ratio: 0.05
+  lr_scheduler_type: cosine
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  optim: paged_adamw_8bit
+
+  memory_profile: "24gb"
+  max_seq_length: 3072
+  packing: true
+  load_in_4bit: true
+  bf16: true
+  gradient_checkpointing: true
+
+  logging_steps: 10
+  eval_steps: 200
+  save_steps: 200
+  save_total_limit: 3
+  resume_from_checkpoint: true
+  report_to: none

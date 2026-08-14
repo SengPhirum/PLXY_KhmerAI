@@ -1,0 +1,243 @@
+#!/usr/bin/env python3
+"""Generate the licence report and the provenance document (Phase 2).
+
+    python datasets/license_report.py
+    python datasets/license_report.py --fail-on-unreviewed
+
+Writes:
+  * ``data/manifests/license_report.csv`` - the machine-readable review sheet
+  * ``docs/dataset_provenance.md``        - the human-readable provenance record
+
+Status vocabulary (§Phase 2):
+  ``approved``                  cleared for commercial training
+  ``review_required``           legal review not yet recorded
+  ``prohibited_for_commercial`` must not enter production training
+  ``evaluation_only``           held out; never used for training
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import io
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from common.config import load_config  # noqa: E402
+from common.io import atomic_write_text, read_json  # noqa: E402
+from common.logging import get_logger  # noqa: E402
+from common.paths import MANIFEST_DIR, PROJECT_ROOT, ensure_dir  # noqa: E402
+
+log = get_logger("datasets.license")
+
+STATUSES = ("approved", "review_required", "prohibited_for_commercial", "evaluation_only")
+COLUMNS = (
+    "dataset", "source", "revision", "subset", "license", "language",
+    "intended_use", "commercial_review_status", "raw_records", "raw_bytes",
+    "sha256", "download_date", "evaluation_only", "path",
+)
+
+# Known licences for the configured sources.  These are recorded so a reviewer
+# starts from the published licence rather than researching each one; the
+# authoritative text is always the dataset card, and the review decision is the
+# organisation's to make.
+KNOWN_LICENSES: dict[str, str] = {
+    "fineweb2_khmer": "ODC-By 1.0 (plus CommonCrawl ToU)",
+    "khmer_wikipedia": "CC BY-SA 4.0 / GFDL",
+    "culturax_khmer": "mC4 + OSCAR terms; per-source restrictions apply",
+    "aya_collection_khmer": "Apache-2.0 (per-subset terms vary)",
+    "khmer_question_answer": "see the dataset card",
+    "opus100_en_km": "CC BY 4.0 (per-corpus terms vary)",
+    "belebele_khmer": "CC BY-SA 4.0 - EVALUATION ONLY",
+    "flores_plus_khmer": "CC BY-SA 4.0 - EVALUATION ONLY",
+}
+
+
+def collect(config_path: str = "configs/base.yaml") -> list[dict[str, Any]]:
+    """Merge configured sources with any manifests already on disk."""
+    config = load_config(config_path).get("datasets", {}) or {}
+    rows: dict[str, dict[str, Any]] = {}
+
+    for source in config.get("public_sources", []) + config.get("evaluation_sources", []):
+        name = source["name"]
+        rows[name] = {
+            "dataset": name,
+            "source": source.get("hf_id", ""),
+            "revision": source.get("revision", ""),
+            "subset": source.get("subset", ""),
+            "license": KNOWN_LICENSES.get(name, "see the dataset card"),
+            "language": "km",
+            "intended_use": source.get("intended_use", ""),
+            "commercial_review_status": source.get("commercial_review_status", "review_required"),
+            "raw_records": 0,
+            "raw_bytes": 0,
+            "sha256": "",
+            "download_date": "",
+            "evaluation_only": source.get("intended_use") == "evaluation_only",
+            "path": "",
+        }
+
+    for manifest_path in sorted(MANIFEST_DIR.glob("*.json")):
+        if manifest_path.name.startswith("_"):
+            continue
+        try:
+            manifest = read_json(manifest_path)
+        except Exception:  # noqa: BLE001
+            continue
+        name = str(manifest.get("dataset", manifest_path.stem))
+        row = rows.setdefault(name, {c: "" for c in COLUMNS})
+        row["dataset"] = name
+        for key in COLUMNS:
+            value = manifest.get(key)
+            if value not in (None, "", 0) or key not in row or row[key] in (None, ""):
+                if value is not None:
+                    row[key] = value
+        row.setdefault("license", KNOWN_LICENSES.get(name, "see the dataset card"))
+
+    return [rows[name] for name in sorted(rows)]
+
+
+def write_csv(rows: list[dict[str, Any]], path: Path) -> Path:
+    buffer = io.StringIO()
+    writer = csv.DictWriter(buffer, fieldnames=list(COLUMNS), extrasaction="ignore")
+    writer.writeheader()
+    for row in rows:
+        writer.writerow({c: row.get(c, "") for c in COLUMNS})
+    ensure_dir(path.parent)
+    atomic_write_text(path, buffer.getvalue())
+    return path
+
+
+def write_provenance_doc(rows: list[dict[str, Any]], path: Path) -> Path:
+    by_status: dict[str, list[dict[str, Any]]] = {s: [] for s in STATUSES}
+    for row in rows:
+        by_status.setdefault(str(row.get("commercial_review_status", "review_required")), []).append(row)
+
+    lines = [
+        "# Dataset provenance and licensing",
+        "",
+        "<!-- GENERATED by datasets/license_report.py - edit the review decisions in",
+        "     configs/base.yaml (datasets.*.commercial_review_status) and re-run. -->",
+        "",
+        f"Generated: {datetime.now(timezone.utc).isoformat()}",
+        "",
+        "## Why this file exists",
+        "",
+        "Every corpus used to train a commercial model carries licence obligations.",
+        "This document records, for each source: what it is, where it came from, which",
+        "revision was used, its licence, and whether the organisation has cleared it for",
+        "commercial training. `datasets/build_manifest.py --check` fails the build if a",
+        "data file has no manifest, and `--fail-on-unreviewed` here fails the release if",
+        "an unreviewed source is present.",
+        "",
+        "## Review status vocabulary",
+        "",
+        "| Status | Meaning |",
+        "|---|---|",
+        "| `approved` | Legal review recorded; cleared for commercial training. |",
+        "| `review_required` | Not yet reviewed. **Must not enter production training.** |",
+        "| `prohibited_for_commercial` | Reviewed and rejected for commercial use. |",
+        "| `evaluation_only` | Held out for evaluation. Never used for training. |",
+        "",
+        "## Sources",
+        "",
+        "| Dataset | Source | Subset | Licence | Intended use | Status | Records |",
+        "|---|---|---|---|---|---|---:|",
+    ]
+    for row in rows:
+        lines.append(
+            f"| `{row.get('dataset', '')}` | `{row.get('source', '')}` | "
+            f"{row.get('subset') or '-'} | {row.get('license', '')} | "
+            f"{row.get('intended_use') or '-'} | **{row.get('commercial_review_status', '')}** | "
+            f"{row.get('raw_records', 0):,} |"
+        )
+
+    lines += [
+        "",
+        "## Evaluation isolation",
+        "",
+        "Belebele and FLORES-Plus Khmer subsets are downloaded to",
+        "`data/evaluation/public/` and are marked `evaluation_only`. They are never",
+        "read by the preprocessing pipeline, never enter `data/cleaned/`, and",
+        "`datasets/build_manifest.py --check` fails if such a file appears under a",
+        "training path. Additionally, `preprocessing/near_dedup.py::LeakageChecker`",
+        "rejects any training record that near-duplicates a sealed evaluation record.",
+        "",
+        "## Outstanding review actions",
+        "",
+    ]
+    pending = by_status.get("review_required", [])
+    if pending:
+        for row in pending:
+            lines.append(
+                f"- [ ] **{row['dataset']}** (`{row.get('source', '')}`) - "
+                f"licence: {row.get('license', 'unknown')}. Confirm commercial use is permitted, "
+                "then set `commercial_review_status: approved` in `configs/base.yaml`."
+            )
+    else:
+        lines.append("_None. Every configured source has a recorded review decision._")
+
+    lines += [
+        "",
+        "## Model licences",
+        "",
+        "The base models (Qwen family) carry their own licences, which are separate from",
+        "the dataset licences above. Review the model card for the exact revision pinned",
+        "in `configs/models/*.yaml` before commercial deployment.",
+        "",
+    ]
+    ensure_dir(path.parent)
+    atomic_write_text(path, "\n".join(lines))
+    return path
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="python datasets/license_report.py")
+    parser.add_argument("--config", default="configs/base.yaml")
+    parser.add_argument("--out", default="data/manifests/license_report.csv")
+    parser.add_argument("--doc", default="docs/dataset_provenance.md")
+    parser.add_argument(
+        "--fail-on-unreviewed",
+        action="store_true",
+        help="exit non-zero when a training source is not `approved` (release gate)",
+    )
+    args = parser.parse_args(argv)
+
+    rows = collect(args.config)
+    csv_path = write_csv(rows, PROJECT_ROOT / args.out)
+    doc_path = write_provenance_doc(rows, PROJECT_ROOT / args.doc)
+
+    counts: dict[str, int] = {}
+    for row in rows:
+        status = str(row.get("commercial_review_status", "review_required"))
+        counts[status] = counts.get(status, 0) + 1
+
+    print(f"wrote {csv_path}")
+    print(f"wrote {doc_path}")
+    print(f"sources: {len(rows)}")
+    for status, count in sorted(counts.items()):
+        print(f"  {status}: {count}")
+
+    unreviewed = [
+        r["dataset"]
+        for r in rows
+        if r.get("commercial_review_status") not in ("approved", "evaluation_only")
+        and r.get("intended_use") != "evaluation_only"
+    ]
+    if unreviewed:
+        print("\nNOT cleared for commercial training:", file=sys.stderr)
+        for name in unreviewed:
+            print(f"  - {name}", file=sys.stderr)
+        if args.fail_on_unreviewed:
+            return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

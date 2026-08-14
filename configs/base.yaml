@@ -94,9 +94,20 @@ slo:
 # -----------------------------------------------------------------------------
 context:
   model_context_tokens: 8192       # OLLAMA_CONTEXT_LENGTH must match
-  reserved_for_system_prompt: 900
-  reserved_for_retrieved_context: 3200
-  reserved_for_conversation: 1600
+  # MEASURED with rag.chunking.estimate_tokens, not estimated:
+  #   prompts/system_km.md   ~3570 tokens (Khmer is tokenised far more finely
+  #                          than English - the English prompt is ~900 for the
+  #                          same content)
+  #   prompts/rag_answer.md  ~730 tokens
+  # Re-measure after any prompt edit:
+  #   python -c "from rag.chunking import estimate_tokens; import pathlib; \
+  #     print(estimate_tokens(pathlib.Path('prompts/system_km.md').read_text()))"
+  # server/chat_service.py::PromptBuilder.validate_budget warns at startup if
+  # these no longer fit.
+  reserved_for_system_prompt: 3600
+  reserved_for_answer_scaffold: 750
+  reserved_for_retrieved_context: 2200
+  reserved_for_conversation: 500
   reserved_for_output: 768
   safety_margin: 300
   max_user_message_chars: 4000

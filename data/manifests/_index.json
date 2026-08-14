@@ -1,0 +1,15 @@
+{
+  "summary": {
+    "root": "data/raw",
+    "files": 0,
+    "manifests": 0,
+    "total_records": 0,
+    "total_bytes": 0,
+    "by_review_status": {},
+    "evaluation_only_files": 0,
+    "problems": [],
+    "ok": true,
+    "generated_at": "2026-08-14T08:03:04.238128+00:00"
+  },
+  "manifests": []
+}

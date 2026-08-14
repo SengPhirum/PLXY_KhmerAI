@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Ollama daemon with the tuned runtime environment (Phase 13).
+
+  IMPORTANT: OLLAMA_NUM_PARALLEL and OLLAMA_CONTEXT_LENGTH are read at daemon
+  startup, not per request. Changing them requires:
+      sudo launchctl kickstart -k system/com.company.khmerai.ollama
+
+  The values below are the documented STARTING POINTS. Replace them with the
+  winners from `bash ollama/benchmark.sh` and record them in
+  configs/production/ollama_9b.yaml.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.company.khmerai.ollama</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/ollama</string>
+        <string>serve</string>
+    </array>
+
+    <key>UserName</key>
+    <string>__USER__</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>OLLAMA_HOST</key>
+        <string>127.0.0.1:11434</string>
+        <key>OLLAMA_CONTEXT_LENGTH</key>
+        <string>8192</string>
+        <key>OLLAMA_NUM_PARALLEL</key>
+        <string>4</string>
+        <key>OLLAMA_MAX_QUEUE</key>
+        <string>64</string>
+        <key>OLLAMA_KEEP_ALIVE</key>
+        <string>-1</string>
+        <key>OLLAMA_FLASH_ATTENTION</key>
+        <string>1</string>
+        <key>OLLAMA_KV_CACHE_TYPE</key>
+        <string>q8_0</string>
+        <key>OLLAMA_MAX_LOADED_MODELS</key>
+        <string>1</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>StandardOutPath</key>
+    <string>__LOG_DIR__/ollama.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>__LOG_DIR__/ollama.err.log</string>
+
+    <!-- Generation is the machine's primary workload; do not let macOS throttle it. -->
+    <key>ProcessType</key>
+    <string>Interactive</string>
+
+    <key>SoftResourceLimits</key>
+    <dict>
+        <key>NumberOfFiles</key>
+        <integer>16384</integer>
+    </dict>
+</dict>
+</plist>

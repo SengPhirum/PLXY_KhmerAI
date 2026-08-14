@@ -213,6 +213,37 @@ def validate_documents(
 
         accepted.append(document)
 
+    # A silent "nothing is retrievable" is the most confusing possible outcome:
+    # ingestion reports success and then the assistant answers "I don't know" to
+    # everything.  Say so explicitly, with the reason.
+    not_retrievable = [d for d in accepted if not d.is_retrievable(as_of)]
+    if accepted and len(not_retrievable) == len(accepted):
+        reasons = sorted({str(d.confidentiality) for d in not_retrievable})
+        result.add(
+            IngestionIssue(
+                severity="error",
+                code="nothing_retrievable",
+                message=(
+                    f"all {len(accepted)} document(s) are excluded from customer-facing "
+                    f"retrieval (confidentiality: {', '.join(reasons)}). Documents default to "
+                    "'internal' when they do not declare a confidentiality; add a "
+                    "`confidentiality: public` field (front matter, CSV/XLSX column or HTML "
+                    "meta tag) to the ones customers may see."
+                ),
+            )
+        )
+    elif not_retrievable:
+        result.add(
+            IngestionIssue(
+                severity="info",
+                code="not_retrievable",
+                message=(
+                    f"{len(not_retrievable)} of {len(accepted)} document(s) are excluded from "
+                    "customer-facing retrieval (draft, expired, or not public)"
+                ),
+            )
+        )
+
     result.conflicting_versions = find_conflicts(accepted, as_of=as_of)
     for conflict in result.conflicting_versions:
         result.add(

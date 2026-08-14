@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  FastAPI service. Installed by deployment/macos/install.sh, which substitutes
+  __PREFIX__, __LOG_DIR__ and __USER__.
+
+    sudo launchctl load -w /Library/LaunchDaemons/com.company.khmerai.api.plist
+    sudo launchctl kickstart -k system/com.company.khmerai.api      # restart
+    sudo launchctl unload /Library/LaunchDaemons/com.company.khmerai.api.plist
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.company.khmerai.api</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>__PREFIX__/.venv/bin/python</string>
+        <string>-m</string>
+        <string>uvicorn</string>
+        <string>server.main:app</string>
+        <string>--host</string>
+        <string>127.0.0.1</string>
+        <string>--port</string>
+        <string>8000</string>
+        <string>--workers</string>
+        <string>1</string>
+        <string>--no-access-log</string>
+        <string>--timeout-keep-alive</string>
+        <string>75</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>__PREFIX__</string>
+
+    <key>UserName</key>
+    <string>__USER__</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+        <key>KHMERAI_ENV</key>
+        <string>production</string>
+        <key>KHMERAI_LOG_FORMAT</key>
+        <string>json</string>
+        <!-- Secrets come from __PREFIX__/.env (mode 600), never from this file,
+             which is world-readable in /Library/LaunchDaemons. -->
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+    <!-- Back off before restarting so a crash loop does not spin the CPU. -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>StandardOutPath</key>
+    <string>__LOG_DIR__/api.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>__LOG_DIR__/api.err.log</string>
+
+    <key>ProcessType</key>
+    <string>Interactive</string>
+    <key>Nice</key>
+    <integer>-5</integer>
+
+    <key>SoftResourceLimits</key>
+    <dict>
+        <key>NumberOfFiles</key>
+        <integer>8192</integer>
+    </dict>
+</dict>
+</plist>

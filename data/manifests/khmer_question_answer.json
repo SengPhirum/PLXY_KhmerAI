@@ -1,0 +1,19 @@
+{
+  "dataset": "khmer_question_answer",
+  "source": "kimleang123/khmer_question_answer",
+  "revision": "unresolved",
+  "download_date": "2026-08-14T08:03:04.042888+00:00",
+  "license": "see the dataset card",
+  "language": "km",
+  "subset": "default",
+  "split": "train",
+  "raw_records": 0,
+  "raw_bytes": 0,
+  "sha256": "",
+  "intended_use": "instruction_tuning",
+  "commercial_review_status": "review_required",
+  "output_path": "/home/user/PLXY_KhmerAI/data/raw/public/khmer_question_answer.jsonl",
+  "evaluation_only": false,
+  "downloaded": false,
+  "notes": "DRY RUN - would stream kimleang123/khmer_question_answer (subset=default, split=train) to /home/user/PLXY_KhmerAI/data/raw/public/khmer_question_answer.jsonl"
+}

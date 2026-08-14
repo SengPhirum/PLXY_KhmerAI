@@ -55,6 +55,16 @@ __all__ = ["PromptBuilder", "ChatService", "ChatOutcome"]
 
 _SECTION_RE = re.compile(r"^#\s*\[([A-Z /-]+)\]\s*$", re.MULTILINE)
 _HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+# Headroom for the chat template's own tokens (role markers, separators) plus a
+# margin for the estimator's error against the real tokenizer.
+_TEMPLATE_MARGIN = 300
+_MAX_TRUNCATION_PASSES = 6
+_MIN_KEPT_MESSAGE_CHARS = 200
+# The Khmer system prompt is a policy document and is genuinely large (~3.6k
+# estimated tokens). Above this share of the window there is not enough room
+# left for retrieved context, and the assistant degrades to ungrounded answers.
+_SYSTEM_PROMPT_MAX_WINDOW_SHARE = 0.55
+
 _UNKNOWN_MARKERS = (
     "មិនមានព័ត៌មាន",
     "ខ្ញុំមិនដឹង",
@@ -89,6 +99,44 @@ class PromptBuilder:
         """The [SYSTEM POLICY]..[SECURITY POLICY] block, with placeholders filled."""
         source = self._read("system_en.md" if language == "en" else "system_km.md")
         return source.replace("{{company_name}}", self.settings.company_display_name)
+
+    def validate_budget(self) -> dict[str, Any]:
+        """Check at startup that the prompts fit the configured context window.
+
+        Discovering at 03:00 that the system prompt plus the retrieved context
+        does not fit - and that the runtime has been silently truncating the
+        policy section - is exactly the failure this catches.
+        """
+        settings = self.settings
+        report: dict[str, Any] = {"num_ctx": settings.num_ctx, "warnings": []}
+        for language in ("km", "en"):
+            tokens = estimate_tokens(self.system_prompt(language))
+            report[f"system_prompt_{language}_tokens"] = tokens
+            share = tokens / max(1, settings.num_ctx)
+            if share > _SYSTEM_PROMPT_MAX_WINDOW_SHARE:
+                report["warnings"].append(
+                    f"the {language} system prompt is {tokens} tokens, {share:.0%} of the "
+                    f"{settings.num_ctx}-token window; raise KHMERAI_NUM_CTX (and "
+                    f"OLLAMA_CONTEXT_LENGTH) or shorten prompts/system_{language}.md"
+                )
+        scaffold = estimate_tokens(self._read("rag_answer.md"))
+        report["answer_scaffold_tokens"] = scaffold
+        headroom = (
+            settings.num_ctx
+            - report["system_prompt_km_tokens"]
+            - scaffold
+            - settings.max_output_tokens
+            - _TEMPLATE_MARGIN
+        )
+        report["headroom_for_context_and_history_tokens"] = headroom
+        if headroom < 500:
+            report["warnings"].append(
+                f"only {headroom} tokens remain for retrieved context and conversation "
+                "history; grounded answers will be starved of evidence"
+            )
+        for warning in report["warnings"]:
+            log.warning("chat.prompt_budget", extra={"detail": warning})
+        return report
 
     def escalation_block(self, reason: EscalationReason, topic: str = "") -> str:
         return (
@@ -169,24 +217,82 @@ class PromptBuilder:
         if escalation is not EscalationReason.NONE:
             system = f"{system}\n\n{self.escalation_block(escalation, conversation.unresolved_question)}"
 
-        user_block = self.answer_block(
-            conversation_summary=conversation.summary,
-            retrieved_context=context_block,
-            user_message=user_message,
-            detected_product=conversation.detected_product,
-        )
+        # --- context budget --------------------------------------------------
+        # The window is a hard limit. If the assembled prompt exceeds it, the
+        # runtime truncates from the front - dropping the system prompt, which
+        # is precisely how a grounded assistant turns into a hallucinating one.
+        # So the budget is enforced here, shrinking the elastic parts in order
+        # of least value: history first, then retrieved chunks, then the
+        # customer's own message as a last resort.
+        available = settings.num_ctx - settings.max_output_tokens - _TEMPLATE_MARGIN
+        system_tokens = estimate_tokens(system)
+        budget_for_turn = available - system_tokens
 
-        # Token budget: system prompt and retrieved context are fixed costs; the
-        # conversation history absorbs whatever is left.
-        budget = (
-            settings.num_ctx
-            - estimate_tokens(system)
-            - estimate_tokens(user_block)
-            - settings.max_output_tokens
-            - 300  # safety margin for the chat template itself
-        )
+        message_text = user_message
+        chunk_count = len(retrieval.chunks) if retrieval is not None and not retrieval.is_empty else 0
+
+        def _render(text: str, chunks_kept: int) -> str:
+            block = context_block
+            if retrieval is not None and not retrieval.is_empty and chunks_kept < len(retrieval.chunks):
+                trimmed = retrieval.model_copy(update={"chunks": retrieval.chunks[:chunks_kept]})
+                block, _ = build_context_block(trimmed) if chunks_kept else ("", [])
+            return self.answer_block(
+                conversation_summary=conversation.summary,
+                retrieved_context=block,
+                user_message=text,
+                detected_product=conversation.detected_product,
+            )
+
+        user_block = _render(message_text, chunk_count)
+
+        # 1. Drop retrieved chunks from the tail (they are ranked, so the last
+        #    ones contribute least) until the turn fits.
+        while chunk_count > 0 and estimate_tokens(user_block) > budget_for_turn:
+            chunk_count -= 1
+            user_block = _render(message_text, chunk_count)
+        if retrieval is not None and chunk_count < len(retrieval.chunks):
+            log.info(
+                "chat.context_trimmed",
+                extra={
+                    "chunks_kept": chunk_count,
+                    "chunks_retrieved": len(retrieval.chunks),
+                    "num_ctx": settings.num_ctx,
+                },
+            )
+            sources = sources[:chunk_count]
+
+        # 2. Still too long: the customer's message alone exceeds the window.
+        #    Truncate it rather than let the system prompt fall out.  Iterative
+        #    because the token cost of Khmer is not linear in characters, so a
+        #    single ratio-based cut systematically undershoots.
+        if estimate_tokens(user_block) > budget_for_turn and message_text:
+            for _ in range(_MAX_TRUNCATION_PASSES):
+                overshoot = estimate_tokens(user_block) - budget_for_turn
+                if overshoot <= 0:
+                    break
+                keep = max(
+                    _MIN_KEPT_MESSAGE_CHARS,
+                    int(len(message_text) * (1.0 - min(0.9, overshoot / max(1, estimate_tokens(user_block)))) * 0.9),
+                )
+                if keep >= len(message_text):
+                    keep = int(len(message_text) * 0.8)
+                if keep < _MIN_KEPT_MESSAGE_CHARS:
+                    break
+                message_text = message_text[:keep]
+                user_block = _render(message_text, chunk_count)
+            log.warning(
+                "chat.user_message_truncated",
+                extra={
+                    "original_chars": len(user_message),
+                    "kept_chars": len(message_text),
+                    "budget_tokens": budget_for_turn,
+                },
+            )
+
+        # 3. Whatever remains goes to conversation history.
+        history_budget = budget_for_turn - estimate_tokens(user_block)
         history = conversation.build_history(
-            max_turns=settings.conversation_max_turns, token_budget=max(0, budget)
+            max_turns=settings.conversation_max_turns, token_budget=max(0, history_budget)
         )
 
         messages = [{"role": "system", "content": system}, *history, {"role": "user", "content": user_block}]

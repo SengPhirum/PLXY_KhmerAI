@@ -1,0 +1,54 @@
+extends: ../models/qwen35_9b.yaml
+
+# =============================================================================
+# Phase 8 - QLoRA SFT for the 9B candidate
+#   python training/train_sft.py --config configs/training/sft_9b.yaml
+# =============================================================================
+training:
+  run_name: khmer-support-sft-9b-v1
+  base_model: Qwen/Qwen3.5-9B
+  model_revision: main
+  output_dir: outputs/sft_9b
+  dataset_path: data/sft/train.jsonl
+  eval_dataset_path: data/sft/validation.jsonl
+  seed: 20260814
+
+  # LoRA. alpha ~= 2x rank is the starting point from §Phase 8; the sweep below
+  # is what decides. target_modules empty => discovered from the loaded model.
+  lora_rank: 64
+  lora_alpha: 128
+  lora_dropout: 0.05
+  lora_target_modules: []
+  modules_to_save: []
+
+  learning_rate: 1.0e-4
+  num_train_epochs: 2.0
+  max_steps: -1
+  warmup_ratio: 0.04              # within the 3-5% band
+  lr_scheduler_type: cosine
+  weight_decay: 0.01
+  max_grad_norm: 1.0              # §Phase 8 gradient clipping
+  optim: paged_adamw_8bit
+
+  memory_profile: "40gb"
+  max_seq_length: 4096
+  packing: true
+  load_in_4bit: true
+  bf16: true
+  gradient_checkpointing: true
+
+  logging_steps: 10
+  eval_steps: 200
+  save_steps: 200
+  save_total_limit: 3
+  resume_from_checkpoint: true
+  report_to: none                 # set to wandb only with WANDB_MODE=offline
+
+  # Initial parameter search (§Phase 8). Run each, then compare with
+  # `python -m evaluation.evaluate_regression`.
+  sweep:
+    lora_rank: [32, 64]
+    lora_alpha_multiplier: [2]
+    lora_dropout: [0.0, 0.05]
+    max_seq_length: [2048, 4096]
+    learning_rate: [5.0e-5, 1.0e-4, 2.0e-4]

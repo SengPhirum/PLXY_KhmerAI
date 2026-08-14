@@ -1,0 +1,19 @@
+{
+  "dataset": "culturax_khmer",
+  "source": "uonlp/CulturaX",
+  "revision": "unresolved",
+  "download_date": "2026-08-14T08:03:04.041231+00:00",
+  "license": "see the dataset card",
+  "language": "km",
+  "subset": "km",
+  "split": "train",
+  "raw_records": 0,
+  "raw_bytes": 0,
+  "sha256": "",
+  "intended_use": "continued_pretraining",
+  "commercial_review_status": "review_required",
+  "output_path": "/home/user/PLXY_KhmerAI/data/raw/public/culturax_khmer.jsonl",
+  "evaluation_only": false,
+  "downloaded": false,
+  "notes": "DRY RUN - would stream uonlp/CulturaX (subset=km, split=train) to /home/user/PLXY_KhmerAI/data/raw/public/culturax_khmer.jsonl"
+}

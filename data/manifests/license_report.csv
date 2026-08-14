@@ -1,0 +1,9 @@
+dataset,source,revision,subset,license,language,intended_use,commercial_review_status,raw_records,raw_bytes,sha256,download_date,evaluation_only,path
+aya_collection_khmer,CohereForAI/aya_collection_language_split,unresolved,khmer,see the dataset card,km,instruction_tuning,review_required,0,0,,2026-08-14T08:03:04.042013+00:00,False,
+belebele_khmer,facebook/belebele,unresolved,khm_Khmr,see the dataset card,km,evaluation_only,evaluation_only,0,0,,2026-08-14T08:03:04.045039+00:00,True,
+culturax_khmer,uonlp/CulturaX,unresolved,km,see the dataset card,km,continued_pretraining,review_required,0,0,,2026-08-14T08:03:04.041231+00:00,False,
+fineweb2_khmer,HuggingFaceFW/fineweb-2,unresolved,khm_Khmr,see the dataset card,km,continued_pretraining,review_required,0,0,,2026-08-14T08:03:04.038684+00:00,False,
+flores_plus_khmer,openlanguagedata/flores_plus,unresolved,khm_Khmr,see the dataset card,km,evaluation_only,evaluation_only,0,0,,2026-08-14T08:03:04.046151+00:00,True,
+khmer_question_answer,kimleang123/khmer_question_answer,unresolved,default,see the dataset card,km,instruction_tuning,review_required,0,0,,2026-08-14T08:03:04.042888+00:00,False,
+khmer_wikipedia,wikimedia/wikipedia,unresolved,20231101.km,see the dataset card,km,continued_pretraining,approved,0,0,,2026-08-14T08:03:04.040366+00:00,False,
+opus100_en_km,Helsinki-NLP/opus-100,unresolved,en-km,see the dataset card,km,code_switching,review_required,0,0,,2026-08-14T08:03:04.044078+00:00,False,

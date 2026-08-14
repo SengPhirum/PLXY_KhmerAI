@@ -1,0 +1,57 @@
+extends: ../models/qwen35_9b.yaml
+
+# =============================================================================
+# Phase 9 - OPTIONAL preference optimisation
+#
+# Keep the checkpoint ONLY if it beats SFT on held-out tests:
+#   python training/train_dpo.py --decide sft_report.json dpo_report.json
+# =============================================================================
+training:
+  run_name: khmer-support-dpo-9b-v1
+  base_model: Qwen/Qwen3.5-9B
+  model_revision: main
+  output_dir: outputs/dpo_9b
+  dataset_path: data/preference/pairs.jsonl
+  seed: 20260814
+
+  lora_rank: 32
+  lora_alpha: 64
+  lora_dropout: 0.0
+
+  # DPO needs a much smaller LR than SFT; reusing the SFT rate collapses the policy.
+  learning_rate: 5.0e-6
+  num_train_epochs: 1.0
+  warmup_ratio: 0.10
+  lr_scheduler_type: cosine
+  max_grad_norm: 1.0
+
+  memory_profile: "40gb"
+  max_seq_length: 2048
+  load_in_4bit: true
+  bf16: true
+  gradient_checkpointing: true
+
+  logging_steps: 10
+  save_steps: 200
+  save_total_limit: 2
+  report_to: none
+
+  # Consumed via TrainingConfig.extra
+  dpo_beta: 0.1
+  sft_adapter: outputs/sft_9b/adapter
+
+preference_criteria:
+  # What a "chosen" answer must be better at (§Phase 9).
+  - factual over fabricated
+  - concise over verbose
+  - natural Khmer over translation-like Khmer
+  - grounded over unsupported
+  - polite over robotic
+  - helpful clarification over guessing
+  - correct escalation over flat refusal
+
+rejection_rules:
+  # Reject this phase entirely if any of these hold.
+  - preference data quality is weak (fewer than 1000 usable pairs)
+  - gains are not measurable on held-out tests
+  - any safety or grounding metric regresses

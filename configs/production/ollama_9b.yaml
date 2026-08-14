@@ -1,0 +1,35 @@
+extends: ../models/qwen35_9b.yaml
+
+# =============================================================================
+# Ollama runtime for the 9B on the Mac Studio (Phase 13)
+#
+# EVERY value below is a STARTING POINT. Replace with the winners from:
+#   bash ollama/benchmark.sh --model khmer-support-9b
+# and record the measurements in reports/final_load_test.md.
+# =============================================================================
+runtime:
+  environment:
+    OLLAMA_CONTEXT_LENGTH: 8192
+    OLLAMA_NUM_PARALLEL: 4
+    OLLAMA_MAX_QUEUE: 64
+    OLLAMA_KEEP_ALIVE: -1         # keep resident; avoids multi-second reloads
+    OLLAMA_FLASH_ATTENTION: 1
+    OLLAMA_KV_CACHE_TYPE: q8_0    # halves KV memory vs f16 at negligible quality cost
+    OLLAMA_MAX_LOADED_MODELS: 1   # 48 GB cannot hold 4B + 9B + embeddings comfortably
+
+  generation:
+    temperature: 0.3
+    top_p: 0.9
+    top_k: 40
+    repeat_penalty: 1.05
+    num_predict: 768
+
+benchmark_matrix:
+  parallel: [1, 2, 4, 6, 8, 10]
+  context: [4096, 8192, 16384]
+  clients: [1, 5, 10, 20]
+  metrics:
+    [unified_memory, model_memory, kv_cache, cpu, gpu, throughput, ttft,
+     tokens_per_second, p50, p95, p99, queue_time, failures, timeouts, http_503, oom]
+
+measured: null                    # populated by ollama/benchmark.sh - never invent

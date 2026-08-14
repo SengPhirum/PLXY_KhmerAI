@@ -61,6 +61,8 @@ class AppState:
             # Loading reads files and may download an embedder; keep it off the
             # event loop so startup does not block the health endpoint.
             await asyncio.get_running_loop().run_in_executor(None, self.rag.try_load)
+        # Fail loudly at startup if the prompts do not fit the window.
+        self.chat.prompts.validate_budget()
         self._sweeper = asyncio.create_task(self._sweep_conversations())
         log.info(
             "app.started",

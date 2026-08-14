@@ -1,0 +1,133 @@
+# Alerting rules (Phase 19).
+#
+# Thresholds trace back to configs/base.yaml -> slo. Change them in ONE place:
+# update the SLO, then update the rule and note the reason in the annotation.
+groups:
+  - name: khmerai-availability
+    interval: 30s
+    rules:
+      - alert: KhmerAIApiDown
+        expr: up{job="khmerai-api"} == 0
+        for: 1m
+        labels: {severity: critical, runbook: "docs/operations_runbook.md#api-down"}
+        annotations:
+          summary: "The API is not responding to scrapes"
+          description: "No /metrics scrape for 1 minute. Customers are getting nothing."
+
+      - alert: KhmerAIOllamaErrors
+        expr: rate(khmerai_ollama_errors_total[5m]) > 0.1
+        for: 2m
+        labels: {severity: critical, runbook: "docs/operations_runbook.md#ollama-down"}
+        annotations:
+          summary: "Ollama is failing ({{ $value | printf \"%.2f\" }} errors/s)"
+          description: "The model daemon is unreachable or erroring. Check `ollama ps` and the launchd log."
+
+      - alert: KhmerAIErrorSpike
+        # SLO: max_5xx_rate 0.005
+        expr: >
+          sum(rate(khmerai_api_errors_total[5m]))
+            / clamp_min(sum(rate(khmerai_requests_total[5m])), 0.001) > 0.005
+        for: 5m
+        labels: {severity: warning, runbook: "docs/operations_runbook.md#bad-answers"}
+        annotations:
+          summary: "API error rate above the 0.5% SLO"
+
+  - name: khmerai-latency
+    interval: 30s
+    rules:
+      - alert: KhmerAITimeToFirstTokenSlow
+        # SLO: time_to_first_token_p95_seconds 2.5
+        expr: histogram_quantile(0.95, sum(rate(khmerai_time_to_first_token_seconds_bucket[10m])) by (le)) > 2.5
+        for: 10m
+        labels: {severity: warning, runbook: "docs/operations_runbook.md#slow-responses"}
+        annotations:
+          summary: "TTFT p95 above 2.5s"
+          description: "Usually queueing or a model reload. Check khmerai_requests_queued and OLLAMA_KEEP_ALIVE."
+
+      - alert: KhmerAILatencySpike
+        # SLO: end_to_end_p95_seconds 12
+        expr: histogram_quantile(0.95, sum(rate(khmerai_request_latency_seconds_bucket[10m])) by (le)) > 12
+        for: 10m
+        labels: {severity: warning, runbook: "docs/operations_runbook.md#slow-responses"}
+        annotations:
+          summary: "End-to-end p95 above 12s"
+
+      - alert: KhmerAIRetrievalSlow
+        # SLO: retrieval_p95_seconds 0.8
+        expr: histogram_quantile(0.95, sum(rate(khmerai_retrieval_latency_seconds_bucket[10m])) by (le)) > 0.8
+        for: 10m
+        labels: {severity: warning, runbook: "docs/operations_runbook.md#slow-responses"}
+        annotations:
+          summary: "Retrieval p95 above 0.8s"
+          description: "The index may have grown past what a flat scan serves quickly. Consider the Qdrant backend."
+
+  - name: khmerai-capacity
+    interval: 30s
+    rules:
+      - alert: KhmerAIQueueBacklog
+        expr: khmerai_requests_queued > 32
+        for: 5m
+        labels: {severity: warning, runbook: "docs/operations_runbook.md#memory-pressure"}
+        annotations:
+          summary: "{{ $value }} requests queued for a generation slot"
+          description: "Sustained backlog. Either raise OLLAMA_NUM_PARALLEL (watch memory) or move to the 4B."
+
+      - alert: KhmerAIRateLimiting
+        expr: rate(khmerai_rate_limit_total[5m]) > 1
+        for: 5m
+        labels: {severity: info}
+        annotations:
+          summary: "Clients are being rate limited"
+
+      - alert: KhmerAIMemoryPressure
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.90
+        for: 5m
+        labels: {severity: critical, runbook: "docs/operations_runbook.md#memory-pressure"}
+        annotations:
+          summary: "Host memory above 90%"
+          description: "Unified memory exhaustion causes swap, and latency collapses rather than degrading."
+
+      - alert: KhmerAIDiskPressure
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.10
+        for: 10m
+        labels: {severity: warning, runbook: "docs/operations_runbook.md#disk"}
+        annotations:
+          summary: "Less than 10% disk free"
+
+  - name: khmerai-quality
+    interval: 60s
+    rules:
+      - alert: KhmerAIRetrievalEmptySpike
+        expr: >
+          sum(rate(khmerai_retrieval_empty_total[15m]))
+            / clamp_min(sum(rate(khmerai_requests_total[15m])), 0.001) > 0.30
+        for: 15m
+        labels: {severity: warning, runbook: "docs/operations_runbook.md#bad-answers"}
+        annotations:
+          summary: "Over 30% of retrievals return nothing usable"
+          description: "Often a failed reindex or a wrong ACTIVE pointer. Check GET /v1/admin/diagnostics -> rag.index_version."
+
+      - alert: KhmerAIUnknownAnswerSpike
+        expr: >
+          sum(rate(khmerai_unknown_answers_total[15m]))
+            / clamp_min(sum(rate(khmerai_requests_total[15m])), 0.001) > 0.40
+        for: 15m
+        labels: {severity: warning}
+        annotations:
+          summary: "Over 40% of answers say 'I don't know'"
+          description: "The index is probably stale or empty - this is what a failed reindex looks like to a customer."
+
+      - alert: KhmerAIGuardrailBlockSpike
+        expr: rate(khmerai_guardrail_blocks_total[15m]) > 0.2
+        for: 15m
+        labels: {severity: warning}
+        annotations:
+          summary: "Guardrails are blocking answers frequently"
+          description: "Either an attack, or a model regression producing ungrounded claims."
+
+      - alert: KhmerAIInjectionAttempts
+        expr: rate(khmerai_injection_blocks_total[15m]) > 0.1
+        for: 10m
+        labels: {severity: warning, runbook: "docs/security.md"}
+        annotations:
+          summary: "Sustained prompt-injection attempts"

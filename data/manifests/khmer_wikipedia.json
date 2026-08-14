@@ -1,0 +1,19 @@
+{
+  "dataset": "khmer_wikipedia",
+  "source": "wikimedia/wikipedia",
+  "revision": "unresolved",
+  "download_date": "2026-08-14T08:03:04.040366+00:00",
+  "license": "see the dataset card",
+  "language": "km",
+  "subset": "20231101.km",
+  "split": "train",
+  "raw_records": 0,
+  "raw_bytes": 0,
+  "sha256": "",
+  "intended_use": "continued_pretraining",
+  "commercial_review_status": "approved",
+  "output_path": "/home/user/PLXY_KhmerAI/data/raw/public/khmer_wikipedia.jsonl",
+  "evaluation_only": false,
+  "downloaded": false,
+  "notes": "DRY RUN - would stream wikimedia/wikipedia (subset=20231101.km, split=train) to /home/user/PLXY_KhmerAI/data/raw/public/khmer_wikipedia.jsonl"
+}

@@ -1,0 +1,43 @@
+# Prometheus scrape configuration for the Khmer support assistant (Phase 19).
+#
+#   prometheus --config.file=monitoring/prometheus.yml
+#
+# On the Mac Studio, Prometheus runs alongside the API. Everything is bound to
+# loopback: none of these endpoints should be reachable from the LAN.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    service: khmer-support-llm
+    environment: production
+
+rule_files:
+  - alerts/khmerai_alerts.yml
+
+scrape_configs:
+  - job_name: khmerai-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["127.0.0.1:8000"]
+        labels:
+          component: api
+    # The API is the only source of request/latency/grounding metrics.
+
+  - job_name: node
+    static_configs:
+      - targets: ["127.0.0.1:9100"]
+        labels:
+          component: host
+    # Optional: node_exporter for CPU, unified memory and disk pressure.
+    # brew install node_exporter && brew services start node_exporter
+
+  - job_name: ollama
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["127.0.0.1:11434"]
+        labels:
+          component: ollama
+    # Ollama does not expose Prometheus metrics in every release. If this target
+    # stays DOWN, rely on khmerai_ollama_errors_total from the API instead - it
+    # is the signal the alerting rules actually use.

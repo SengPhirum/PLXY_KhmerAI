@@ -1,0 +1,47 @@
+extends: ../base.yaml
+
+# =============================================================================
+# FastAPI production settings (values here are policy; secrets come from .env)
+# =============================================================================
+api:
+  host: 127.0.0.1                 # bind to loopback; nginx terminates TLS
+  port: 8000
+  workers: 1                      # Ollama is the concurrency bottleneck, not the API
+  request_id_header: X-Request-ID
+
+  timeouts:
+    retriever_seconds: 5
+    ollama_connect_seconds: 5
+    ollama_read_seconds: 120
+    ollama_total_seconds: 180
+    client_seconds: 200           # must exceed ollama_total + queue_timeout
+    queue_seconds: 20
+
+  limits:
+    max_request_bytes: 65536
+    max_message_chars: 4000
+    max_active_generations: 4     # <= OLLAMA_NUM_PARALLEL
+    max_queue_depth: 64
+
+  rate_limit:
+    enabled: true
+    requests: 30
+    window_seconds: 60
+    burst: 10
+
+  cors:
+    origins: []                   # add the front-end origin explicitly
+    allow_credentials: false
+
+  auth:
+    require_client_auth: false    # true when exposed beyond a trusted LAN
+    admin_header: X-Admin-Key
+
+  streaming:
+    protocol: sse
+    heartbeat_seconds: 15
+    disable_proxy_buffering: true # X-Accel-Buffering: no
+
+endpoints:
+  public: [GET /health, GET /ready, GET /metrics, POST /v1/chat, POST /v1/chat/stream, POST /v1/rag/search, GET /v1/models]
+  admin: [POST /v1/admin/reindex, POST /v1/admin/reload, GET /v1/admin/diagnostics]

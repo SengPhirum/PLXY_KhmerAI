@@ -44,6 +44,13 @@ CANONICAL_COLUMNS: dict[str, tuple[str, ...]] = {
     "status": ("status", "state", "ស្ថានភាព"),
     "language": ("language", "lang", "ភាសា"),
     "owner": ("owner", "responsible", "department"),
+    # Governance columns. Without these a catalogue inherits the safe default
+    # (`internal`) and is therefore never served to customers - which looks like
+    # "retrieval returns nothing" rather than like a configuration problem, so
+    # `company_data/validate.py` reports it explicitly.
+    "confidentiality": ("confidentiality", "visibility", "sensitivity"),
+    "access_level": ("accesslevel", "audience"),
+    "source_url": ("sourceurl", "url", "link"),
 }
 _NORMALISE = re.compile(r"[^a-z0-9ក-៿]")
 
