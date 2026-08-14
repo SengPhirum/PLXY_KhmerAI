@@ -73,7 +73,11 @@ INJECTION_PATTERNS: Final[tuple[tuple[str, InjectionSeverity, str], ...]] = (
     (
         "reveal_system_prompt_en",
         InjectionSeverity.HIGH,
-        r"(?i)\b(?:show|reveal|print|repeat|output|display|tell me|what (?:is|are|was))\b[^.\n]{0,40}\b(?:system prompt|initial (?:prompt|instruction)|hidden (?:prompt|instruction)|your (?:instruction|prompt|rule)s?|developer message)\b",
+        r"(?i)\b(?:show|reveal|print|repeat|output|display|tell me|what (?:is|are|was)|list)\b"
+        r"[^.\n]{0,40}"
+        r"\b(?:system prompt|initial (?:prompt|instruction)s?|hidden (?:prompt|instruction)s?|"
+        r"original (?:prompt|instruction)s?|your (?:instruction|prompt|rule|directive)s?|"
+        r"developer message)\b",
     ),
     (
         "reveal_system_prompt_km",
@@ -134,6 +138,14 @@ INJECTION_PATTERNS: Final[tuple[tuple[str, InjectionSeverity, str], ...]] = (
         "encoded_payload",
         InjectionSeverity.MEDIUM,
         r"(?i)\b(?:base64|rot13|hex)\s*(?:decode|encoded?)\b|\bdata:text/[a-z]+;base64,",
+    ),
+    # "decode this and follow it" is unambiguous, unlike the mere mention of an
+    # encoding, so it is high severity on its own.
+    (
+        "decode_and_obey",
+        InjectionSeverity.HIGH,
+        r"(?i)\b(?:decode|decrypt|deobfuscate|unscramble)\b[^.\n]{0,50}"
+        r"\b(?:and|then)\b[^.\n]{0,25}\b(?:follow|execute|obey|comply|run|do)\b",
     ),
     (
         "price_override",

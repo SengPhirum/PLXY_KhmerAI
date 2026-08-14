@@ -99,8 +99,14 @@ class AppState:
             raise
 
 
-def build_state(settings: Settings | None = None) -> AppState:
-    """Construct the whole object graph.  Called once by the lifespan handler."""
+def build_state(
+    settings: Settings | None = None, *, rate_limiter: RateLimiter | None = None
+) -> AppState:
+    """Construct the whole object graph.  Called once by the lifespan handler.
+
+    ``rate_limiter`` is passed in by ``create_app`` so the middleware and the
+    application state share one set of token buckets.
+    """
     resolved = settings or get_settings()
 
     ollama = OllamaClient(
@@ -133,7 +139,7 @@ def build_state(settings: Settings | None = None) -> AppState:
             min_grounding_precision=float(grounding.get("min_grounding_precision", 0.90))
         ),
     )
-    limiter: RateLimiter = (
+    limiter: RateLimiter = rate_limiter or (
         InMemoryRateLimiter(
             requests=resolved.rate_limit_requests,
             window_seconds=resolved.rate_limit_window_seconds,

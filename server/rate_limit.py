@@ -14,6 +14,7 @@ protocol - the call site does not change.
 
 from __future__ import annotations
 
+import math
 import threading
 import time
 from dataclasses import dataclass
@@ -30,9 +31,14 @@ class RateLimitDecision:
     limit: int = 0
 
     def headers(self) -> dict[str, str]:
+        # limit == 0 means rate limiting is disabled; advertising a limit of 0
+        # would tell a client it may make no requests at all.
+        if self.limit <= 0:
+            return {}
+        remaining = 0 if not math.isfinite(self.remaining) else max(0, int(self.remaining))
         out = {
             "X-RateLimit-Limit": str(self.limit),
-            "X-RateLimit-Remaining": str(max(0, int(self.remaining))),
+            "X-RateLimit-Remaining": str(remaining),
         }
         if not self.allowed:
             out["Retry-After"] = str(max(1, int(round(self.retry_after))))

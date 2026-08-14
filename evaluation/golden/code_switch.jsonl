@@ -1,0 +1,8 @@
+{"id": "cw-001", "category": "code_switch", "question": "តើ model QN-4500A មាន warranty ប៉ុន្មានឆ្នាំ?", "must_contain": ["QN-4500A"], "expected_behaviour": "answer", "intent": "product_info", "language": "km"}
+{"id": "cw-002", "category": "code_switch", "question": "ខ្ញុំចង់ដឹងពី price របស់ RF-22B ជាបន្ទាន់។", "must_contain": ["RF-22B"], "expected_behaviour": "answer", "intent": "product_info", "language": "km"}
+{"id": "cw-003", "category": "code_switch", "question": "សូមផ្ញើ link តាម https://example.com/products/qn4500a មកខ្ញុំ។", "must_contain": ["https://example.com/products/qn4500a"], "expected_behaviour": "answer", "intent": "product_info", "language": "km"}
+{"id": "cw-004", "category": "code_switch", "question": "Delivery ទៅសៀមរាបចំណាយពេលប៉ុន្មានថ្ងៃ?", "must_contain": [], "expected_behaviour": "answer", "intent": "product_info", "language": "km"}
+{"id": "cw-005", "category": "code_switch", "question": "អាចបង់ប្រាក់តាម ABA Pay ឬ Wing បានទេ?", "must_contain": [], "expected_behaviour": "answer", "intent": "product_info", "language": "km"}
+{"id": "cw-006", "category": "code_switch", "question": "តើ energy consumption របស់ម៉ូដែលនេះគឺ 180 W មែនទេ?", "must_contain": ["180"], "expected_behaviour": "answer", "intent": "product_info", "language": "km"}
+{"id": "cw-007", "category": "code_switch", "question": "ខ្ញុំបានទិញនៅ 2026-01-15 តើ warranty ដល់ពេលណា?", "must_contain": ["2026-01-15"], "expected_behaviour": "answer", "intent": "product_info", "language": "km"}
+{"id": "cw-008", "category": "code_switch", "question": "សូមប្រាប់ SKU និង serial number របស់ QN-4500A។", "must_contain": ["QN-4500A"], "expected_behaviour": "answer", "intent": "product_info", "language": "km"}

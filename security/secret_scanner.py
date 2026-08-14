@@ -64,8 +64,13 @@ _RULES: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     (
         "assigned_secret",
         "high",
+        # See security/data_redaction.py: `\b` never matches after an underscore,
+        # so `db_password` needs the explicit prefix group.
         re.compile(
-            r"(?i)\b(?:api[_-]?key|secret[_-]?key|access[_-]?token|auth[_-]?token|client[_-]?secret|password|passwd|pwd)\b\s*[:=]\s*[\"']([^\"'\s]{8,})[\"']"
+            r"(?i)(?:^|[^A-Za-z0-9])[A-Za-z0-9_]*"
+            r"(?:api[_-]?key|secret[_-]?key|access[_-]?token|auth[_-]?token|"
+            r"client[_-]?secret|password|passwd|pwd)"
+            r"\s*[:=]\s*[\"']([^\"'\s]{8,})[\"']"
         ),
     ),
     ("bearer_literal", "medium", re.compile(r"(?i)\bauthorization\s*[:=]\s*[\"']?bearer\s+[A-Za-z0-9._\-]{16,}")),

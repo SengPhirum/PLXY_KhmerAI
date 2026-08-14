@@ -55,6 +55,7 @@ from server.middleware import (
 )
 from server.ollama_client import CapacityExceeded, OllamaError, OllamaTimeout, OllamaUnavailable
 from server.rag_service import RagService
+from server.rate_limit import InMemoryRateLimiter, NullRateLimiter, RateLimiter
 from server.schemas import (
     ChatRequest,
     ChatResponse,
@@ -79,7 +80,9 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     settings: Settings = getattr(application.state, "settings", None) or get_settings()
     configure_logging(settings.log_level, fmt=settings.log_format, force=True)
 
-    state = build_state(settings)
+    # Share the limiter instance with the middleware created in `create_app`, so
+    # the buckets the middleware enforces are the buckets diagnostics reports.
+    state = build_state(settings, rate_limiter=getattr(application.state, "rate_limiter", None))
     application.state.app_state = state
     await state.start()
     metrics.set_index_info(state.version_dict())
@@ -108,7 +111,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     application.state.settings = resolved
 
-    # Middleware runs bottom-up: security headers outermost, rate limiting last.
+    limiter: RateLimiter = (
+        InMemoryRateLimiter(
+            requests=resolved.rate_limit_requests,
+            window_seconds=resolved.rate_limit_window_seconds,
+            burst=resolved.rate_limit_burst,
+        )
+        if resolved.rate_limit_enabled
+        else NullRateLimiter()
+    )
+    application.state.rate_limiter = limiter
+
+    # Starlette applies middleware in reverse registration order, so the last
+    # one added is the outermost.  Order matters: a request must get its ID
+    # before anything logs about it, be size-checked before it is parsed, and be
+    # rate-limited before it reaches a handler.
+    application.add_middleware(RateLimitMiddleware, limiter=limiter)
     application.add_middleware(SecurityHeadersMiddleware)
     application.add_middleware(RequestSizeLimitMiddleware, max_bytes=resolved.max_request_bytes)
     application.add_middleware(RequestContextMiddleware, header=resolved.request_id_header)

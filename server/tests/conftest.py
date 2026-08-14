@@ -277,8 +277,8 @@ def client(
 
     original_build = deps.build_state
 
-    def _build(_settings: Settings | None = None) -> deps.AppState:
-        state = original_build(settings)
+    def _build(_settings: Settings | None = None, **kwargs: object) -> deps.AppState:
+        state = original_build(settings, **kwargs)  # type: ignore[arg-type]
         state.ollama = fake_ollama  # type: ignore[assignment]
         state.chat.ollama = fake_ollama  # type: ignore[assignment]
         return state

@@ -42,9 +42,15 @@ DEFAULT_PATTERNS: Final[tuple[tuple[str, str], ...]] = (
     ("hf_token", r"\bhf_[A-Za-z0-9]{30,}\b"),
     ("jwt", r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b"),
     ("private_key_block", r"-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----[\s\S]*?-----END (?:[A-Z ]+ )?PRIVATE KEY-----"),
+    # A leading `[A-Za-z0-9_]*` is required, not decorative: real configuration
+    # keys are `db_password`, `ADMIN_API_KEY`, `service_auth_token`, and a plain
+    # `\bpassword\b` never matches those because `_` is a word character.
     (
         "assigned_secret",
-        r"(?i)\b(?:api[_-]?key|secret|password|passwd|token|authorization|bearer)\b\s*[:=]\s*[\"']?([A-Za-z0-9_\-\.~+/]{8,})[\"']?",
+        r"(?i)(?:^|[^A-Za-z0-9])[A-Za-z0-9_]*"
+        r"(?:api[_-]?key|secret[_-]?key|secret|password|passwd|pwd|access[_-]?token|"
+        r"auth[_-]?token|client[_-]?secret|token|authorization|bearer)"
+        r"\s*[:=]\s*[\"']?([A-Za-z0-9_\-\.~+/]{8,})[\"']?",
     ),
     # --- contact / identity -------------------------------------------------
     ("email", r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b"),
