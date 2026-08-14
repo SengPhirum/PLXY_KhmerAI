@@ -1,0 +1,53 @@
+extends: embedding.yaml
+
+# =============================================================================
+# Query-time retrieval policy (Phase 10)
+# =============================================================================
+retrieval:
+  top_k: 6                       # chunks placed in the model context
+  candidate_k: 24                # candidates fetched from each retriever before fusion
+  use_lexical: true              # BM25 over Khmer syllable n-grams
+  max_context_tokens: 3200       # must match configs/base.yaml context.reserved_for_retrieved_context
+  detect_conflicts: true
+
+  fusion:
+    strategy: rrf                # rrf | weighted | dense_only | lexical_only
+    dense_weight: 0.65
+    lexical_weight: 0.35
+    rrf_k: 60
+
+  reranker:
+    enabled: false               # turn on only when measured to earn its latency
+    backend: heuristic           # heuristic | cross_encoder
+    model: BAAI/bge-reranker-v2-m3
+    top_k: 6
+
+  # Confidence gate.  Below `min_score_to_answer` the retriever returns NOTHING
+  # and the assistant must express uncertainty (§30 runtime policy).
+  # Calibrate with: python -m evaluation.evaluate_retrieval --calibrate-confidence
+  confidence:
+    min_score_to_answer: 0.35
+    medium: 0.45
+    high: 0.62
+    min_chunks_for_high: 2
+
+  security:
+    drop_injected_chunks: true
+    injection_block_threshold: 0.6
+
+  # Default metadata filters applied to every customer query.
+  default_filters:
+    status: [active]
+    max_confidentiality: customer_shareable
+    include_expired: false
+
+  timeouts:
+    retrieval_seconds: ${KHMERAI_RETRIEVAL_TIMEOUT_S:-5}
+
+# Which intents REQUIRE grounded company context before an answer may be given.
+grounding:
+  required_for_intents:
+    [pricing, specification, availability, warranty, returns, refund, policy, product_info, service_info]
+  min_grounding_precision: 0.90
+  on_conflict: expose            # expose | newest_wins (never: silent pick)
+  on_no_result: uncertainty      # uncertainty | escalate

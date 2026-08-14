@@ -1,0 +1,43 @@
+extends: embedding.yaml
+
+# =============================================================================
+# Index build settings (Phase 10 / Phase 21)
+# =============================================================================
+ingestion:
+  input: data/interim/company_records.jsonl
+
+  chunking:
+    # Sizes are ESTIMATED TOKENS (rag/chunking.py estimate_tokens), not characters.
+    # Compare 400/600/800 with:
+    #   python -m evaluation.evaluate_retrieval --sweep-chunking 400,600,800 --overlap 0,50,100
+    chunk_size: 600
+    chunk_overlap: 100
+    min_chunk_size: 80
+    respect_headings: true
+    keep_table_rows_whole: true
+    include_heading_in_text: true
+
+  vector_store:
+    backend: ${KHMERAI_VECTOR_BACKEND:-local}     # local | qdrant
+    index_root: ${KHMERAI_INDEX_ROOT:-data/index}
+    qdrant:
+      url: ${KHMERAI_QDRANT_URL:-http://127.0.0.1:6333}
+      collection_alias: khmer_company_kb          # alias moved on activation
+
+  # Only retrievable documents are indexed: active + valid + public/customer_shareable.
+  include_non_retrievable: false
+  # The hashing embedder is for tests only; building a production index with it is refused.
+  allow_non_semantic_embedder: false
+
+  # Chunk-size sweep grid used by the evaluation script.
+  sweep:
+    chunk_sizes: [400, 600, 800]
+    overlaps: [0, 50, 100]
+    report: evaluation/reports/chunking_sweep.json
+
+# Knowledge-update pipeline (Phase 21)
+reindex:
+  golden: evaluation/golden/customer_support.jsonl
+  min_recall: 0.80              # regression gate before activation
+  keep_versions: 3
+  activate_requires_regression_pass: true

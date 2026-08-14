@@ -1,0 +1,47 @@
+extends: ../base.yaml
+
+# =============================================================================
+# Embedding backend selection and the benchmark matrix (Phase 10)
+# =============================================================================
+embedding:
+  backend: ${KHMERAI_EMBEDDING_BACKEND:-ollama}   # ollama | sentence_transformers | hashing
+  model: ${KHMERAI_EMBEDDING_MODEL:-qwen3-embedding:0.6b}
+  dim: 1024
+  batch_size: 16
+  normalise: true                # L2 normalise so cosine == dot product
+  query_instruction: true        # Qwen3-Embedding wants an instruction prefix on queries only
+
+# Candidates to compare with `python -m evaluation.evaluate_retrieval --compare-embedders`.
+# Fill `measured` only from a real run - never estimate (§1.2).
+candidates:
+  - id: qwen3-embedding-0.6b
+    backend: ollama
+    model: qwen3-embedding:0.6b
+    dim: 1024
+    notes: "Primary candidate. Multilingual, small enough to co-reside with the 9B generator."
+    measured: null
+  - id: qwen3-embedding-0.6b-st
+    backend: sentence_transformers
+    model: Qwen/Qwen3-Embedding-0.6B
+    dim: 1024
+    notes: "Same weights via sentence-transformers; used to cross-check the Ollama path."
+    measured: null
+  - id: bge-m3
+    backend: sentence_transformers
+    model: BAAI/bge-m3
+    dim: 1024
+    notes: "Justified multilingual alternative; strong on low-resource scripts, larger footprint."
+    measured: null
+  - id: multilingual-e5-large
+    backend: sentence_transformers
+    model: intfloat/multilingual-e5-large
+    dim: 1024
+    notes: "Baseline multilingual retriever; requires 'query: '/'passage: ' prefixes."
+    measured: null
+
+# Metrics recorded per candidate on evaluation/golden/customer_support.jsonl
+benchmark:
+  metrics: [recall_at_1, recall_at_3, recall_at_5, mrr, ndcg_at_10, embed_ms_per_1k_chars]
+  report: evaluation/reports/embedding_benchmark.json
+  acceptance:
+    recall_at_5_min: 0.85       # TARGET from configs/base.yaml slo.quality_gates
