@@ -90,6 +90,10 @@ evaluation/reports/**
 reports/**
 !reports/.gitkeep
 !reports/README.md
+# The curated, human-signed release documents are tracked; anything else written
+# into reports/ at runtime is a generated result and is not.
+!reports/final_*.md
+!reports/implementation_report.md
 load_test/results/
 logs/
 *.log

@@ -95,7 +95,7 @@ def test_output_guard_blocks_a_system_prompt_leak() -> None:
 
 def test_output_guard_blocks_a_secret_leak() -> None:
     verdict = OutputGuard().check(
-        'សូមប្រើ api_key="sk-abcdefghijklmnopqrstuvwxyz123456"',
+        'សូមប្រើ api_key="sk-abcdefghijklmnopqrstuvwxyz123456"',  # pragma: allowlist secret
         chunks=[],
         requires_grounding=False,
     )

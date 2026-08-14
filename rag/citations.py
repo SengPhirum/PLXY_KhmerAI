@@ -298,9 +298,12 @@ def verify_grounding(
 
     # De-duplicate while preserving order.
     seen: set[str] = set()
-    report.unsupported_values = [
-        v for v in report.unsupported_values if not (v in seen or seen.add(v))
-    ]
+    deduped: list[str] = []
+    for value in report.unsupported_values:
+        if value not in seen:
+            seen.add(value)
+            deduped.append(value)
+    report.unsupported_values = deduped
     return report
 
 

@@ -33,9 +33,9 @@ from security.secret_scanner import scan_repository, scan_text
         ("call +855 12 345 678", "cambodia_phone_intl"),
         # A branded key is classified by its brand rule, which is more precise
         # than the generic assignment rule.
-        ('api_key="sk-abcdefghijklmnopqrst1234"', "openai_key"),
-        ('db_password = "n0tAplaceh0lderValue"', "assigned_secret"),
-        ("token AKIAIOSFODNN7EXAMPLE here", "aws_access_key"),
+        ('api_key="sk-abcdefghijklmnopqrst1234"', "openai_key"),  # pragma: allowlist secret
+        ('db_password = "n0tAplaceh0lderValue"', "assigned_secret"),  # pragma: allowlist secret
+        ("token AKIAIOSFODNN7EXAMPLE here", "aws_access_key"),  # pragma: allowlist secret
         ("server at 192.168.1.50", "ip_address"),
     ],
 )
@@ -77,11 +77,11 @@ def test_keep_kinds_preserves_the_company_contact() -> None:
 @pytest.mark.parametrize(
     "line",
     [
-        "AWS_KEY = 'AKIAIOSFODNN7EXAMPLE'",
+        "AWS_KEY = 'AKIAIOSFODNN7EXAMPLE'",  # pragma: allowlist secret
         "github_token = 'ghp_" + "a" * 40 + "'",
-        'password = "sup3rS3cretV4lue!"',
-        "-----BEGIN RSA PRIVATE KEY-----",
-        "DATABASE_URL=postgres://user:hunter2pass@db:5432/app",
+        'password = "sup3rS3cretV4lue!"',  # pragma: allowlist secret
+        "-----BEGIN RSA PRIVATE KEY-----",  # pragma: allowlist secret
+        "DATABASE_URL=postgres://user:hunter2pass@db:5432/app",  # pragma: allowlist secret
     ],
 )
 def test_secrets_are_detected(line: str) -> None:
@@ -129,12 +129,12 @@ def test_secrets_are_redacted_from_log_records() -> None:
         level=logging.INFO,
         pathname=__file__,
         lineno=1,
-        msg='connecting with api_key="sk-abcdefghijklmnop1234567890"',
+        msg='connecting with api_key="sk-abcdefghijklmnop1234567890"',  # pragma: allowlist secret
         args=(),
         exc_info=None,
     )
     rendered = formatter.format(record)
-    assert "sk-abcdefghijklmnop1234567890" not in rendered
+    assert "sk-abcdefghijklmnop1234567890" not in rendered  # pragma: allowlist secret
     assert "REDACTED" in rendered
 
 

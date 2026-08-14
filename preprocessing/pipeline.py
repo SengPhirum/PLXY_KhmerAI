@@ -77,14 +77,16 @@ class PipelineConfig:
     def fingerprint(self) -> str:
         """Hash of the effective settings - recorded in the run manifest."""
         resolved = self.resolved()
+        # `resolved()` always fills these in; bind locally so the types are narrow.
+        pii = resolved.pii or PiiPolicy.for_public_corpus()
         payload = {
             "strip_html": resolved.strip_html,
             "normalization": asdict(resolved.normalization),  # type: ignore[arg-type]
             "quality": asdict(resolved.quality),  # type: ignore[arg-type]
             "pii": {
-                "mode": resolved.pii.mode,
-                "keep_kinds": sorted(resolved.pii.keep_kinds),
-                "drop_if_categories": sorted(resolved.pii.drop_if_categories),
+                "mode": pii.mode,
+                "keep_kinds": sorted(pii.keep_kinds),
+                "drop_if_categories": sorted(pii.drop_if_categories),
             },
             "near_dedup": asdict(resolved.near_dedup),  # type: ignore[arg-type]
             "exact_dedup": resolved.exact_dedup,

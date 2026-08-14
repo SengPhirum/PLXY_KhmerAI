@@ -15,3 +15,8 @@ measurement would violate §1.2 of the specification.
 Generated evaluation output lands in `evaluation/reports/` and is gitignored;
 these five files are the curated, human-signed summaries that go into the release
 record.
+
+`implementation_report.md` is different: it is the §46 build report and it *is*
+filled in. It states what was implemented, which gates were actually executed in
+the build environment, and — explicitly — which measurements were **not** taken
+because they need a GPU host or the Mac Studio. Read it first.

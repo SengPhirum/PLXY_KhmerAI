@@ -102,11 +102,13 @@ def load_xlsx(
                 lines = [
                     f"{mapping.get(header) or header}: {value}" for header, value in values.items()
                 ]
-                structured = {
-                    mapping[header]: value
-                    for header, value in values.items()
-                    if mapping.get(header)
-                }
+                # Only columns that map onto a canonical field become structured
+                # metadata; the rest survive in the rendered body text.
+                structured: dict[str, str] = {}
+                for header, value in values.items():
+                    canonical = mapping.get(header)
+                    if canonical:
+                        structured[canonical] = value
                 rendered_rows.append((structured, "\n".join(lines)))
 
             if not rendered_rows:

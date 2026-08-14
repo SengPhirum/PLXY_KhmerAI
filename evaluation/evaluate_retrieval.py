@@ -29,7 +29,7 @@ from evaluation.metrics import latency_percentiles, mrr, ndcg_at_k, precision_at
 from evaluation.runner import load_golden, stamp_report, write_report
 from evaluation.schemas import EvalReport, ItemResult
 from rag.embeddings import build_embedder
-from rag.hybrid_search import FusionConfig
+from rag.hybrid_search import FusionConfig, FusionStrategy
 from rag.ingestion import IngestionSettings, build_index, load_records
 from rag.retrieval import RetrievalConfig, Retriever
 from rag.schemas import RetrievalFilters
@@ -58,7 +58,7 @@ def evaluate_retrieval(
     index_dir: str | Path,
     golden_path: str | Path,
     *,
-    strategy: str = "rrf",
+    strategy: FusionStrategy = "rrf",
     top_k: int = 10,
     thresholds: dict[str, float] | None = None,
 ) -> EvalReport:

@@ -120,7 +120,9 @@ def test_pii_redaction_keeps_the_record() -> None:
 
 def test_credentials_cause_the_record_to_be_dropped() -> None:
     f = PiiFilter(PiiPolicy.for_public_corpus())
-    text, counts = f.process_text('config: api_key="sk-abcdefghijklmnop1234567890"')
+    text, counts = f.process_text(
+        'config: api_key="sk-abcdefghijklmnop1234567890"'  # pragma: allowlist secret
+    )
     assert text is None
     assert f.report.records_dropped == 1
     assert counts

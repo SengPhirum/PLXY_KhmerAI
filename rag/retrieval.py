@@ -208,25 +208,27 @@ class Retriever:
         # 4. Materialise, dropping any chunk that carries an injection payload.
         candidates: list[RetrievedChunk] = []
         for chunk_id, score in fused:
-            chunk = self._chunks_by_id.get(chunk_id)
-            if chunk is None:
+            stored = self._chunks_by_id.get(chunk_id)
+            if stored is None:
                 continue
             if cfg.drop_injected_chunks:
-                scan = scan_for_injection(chunk.text, block_threshold=cfg.injection_block_threshold)
+                scan = scan_for_injection(
+                    stored.text, block_threshold=cfg.injection_block_threshold
+                )
                 if scan.blocked:
                     result.dropped_for_injection += 1
                     log.warning(
                         "rag.retrieval.injected_chunk_dropped",
                         extra={
                             "chunk_id": chunk_id,
-                            "document_id": chunk.document_id,
+                            "document_id": stored.document_id,
                             "matches": [m.name for m in scan.matches],
                         },
                     )
                     continue
             candidates.append(
                 RetrievedChunk.from_chunk(
-                    chunk,
+                    stored,
                     score=score,
                     dense_score=dense_scores.get(chunk_id, 0.0),
                     lexical_score=lexical_scores.get(chunk_id, 0.0),

@@ -136,6 +136,12 @@ warn_unused_ignores = false
 no_implicit_optional = true
 check_untyped_defs = true
 ignore_missing_imports = true
+# The repository has a `datasets/` *script* directory that collides with the
+# Hugging Face `datasets` package the training modules import.  Neither it nor
+# `scripts/`, `load_test/` is an importable package (no __init__.py), so turning
+# namespace packages off makes mypy resolve `import datasets` to the third-party
+# library, the same way the interpreter does at runtime.
+namespace_packages = false
 exclude = "(^\\.venv/|^data/|^training/colab/|^reports/)"
 
 [[tool.mypy.overrides]]

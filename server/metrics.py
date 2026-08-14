@@ -142,13 +142,16 @@ if METRICS_AVAILABLE:
     )
     index_info = Info("khmerai_index", "Active knowledge index", registry=REGISTRY)
 else:  # pragma: no cover
+    # prometheus_client is optional: the service must run without it.  The names
+    # below are deliberately typed loosely because they stand in for several
+    # different prometheus classes at once.
     REGISTRY = None  # type: ignore[assignment]
-    requests_total = requests_active = requests_queued = _NoopMetric()
-    request_latency_seconds = time_to_first_token_seconds = _NoopMetric()
-    generated_tokens_total = retrieval_latency_seconds = _NoopMetric()
-    retrieval_empty_total = ollama_errors_total = api_errors_total = _NoopMetric()
-    escalations_total = unknown_answers_total = rate_limit_total = _NoopMetric()
-    injection_blocks_total = guardrail_blocks_total = index_info = _NoopMetric()
+    requests_total = requests_active = requests_queued = _NoopMetric()  # type: ignore[assignment]
+    request_latency_seconds = time_to_first_token_seconds = _NoopMetric()  # type: ignore[assignment]
+    generated_tokens_total = retrieval_latency_seconds = _NoopMetric()  # type: ignore[assignment]
+    retrieval_empty_total = ollama_errors_total = api_errors_total = _NoopMetric()  # type: ignore[assignment]
+    escalations_total = unknown_answers_total = rate_limit_total = _NoopMetric()  # type: ignore[assignment]
+    injection_blocks_total = guardrail_blocks_total = index_info = _NoopMetric()  # type: ignore[assignment]
 
 
 # --- recording helpers ------------------------------------------------------
