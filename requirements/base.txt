@@ -1,0 +1,10 @@
+# Core runtime shared by every component.
+# Pins resolved against PyPI on 2026-08-14 (see docs/architecture.md §Reproducibility).
+# Python: 3.11.x (3.12 supported, 3.13 not yet validated against the training stack)
+
+pydantic==2.13.4
+pydantic-settings==2.15.0
+PyYAML==6.0.3
+python-dotenv==1.2.2
+numpy==2.5.2
+httpx==0.28.1

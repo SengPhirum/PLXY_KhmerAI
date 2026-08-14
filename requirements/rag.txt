@@ -1,0 +1,23 @@
+# Company-knowledge ingestion + retrieval.
+#
+# The RAG core (chunking, BM25, hybrid fusion, the local vector store) depends
+# only on `base.txt`, so unit tests and CI run without any of the packages
+# below.  These are the production document loaders and the optional Qdrant /
+# sentence-transformers backends.
+-r base.txt
+
+# --- Document loaders -------------------------------------------------------
+pypdf==6.16.0                 # PDF text extraction
+python-docx==1.2.0            # DOCX
+beautifulsoup4==4.15.0        # HTML
+lxml==6.1.1                   # HTML/XML parser backend for bs4
+openpyxl==3.1.5               # XLSX
+charset-normalizer==3.5.0     # robust encoding detection for TXT/CSV
+
+# --- Vector store (optional backend: KHMERAI_VECTOR_BACKEND=qdrant) --------
+qdrant-client==1.19.0
+
+# --- Local embedding backend (optional: KHMERAI_EMBEDDING_BACKEND=sentence_transformers)
+# Installs torch; on the Mac Studio prefer the `ollama` embedding backend
+# instead, which reuses the already-resident runtime.
+# sentence-transformers==5.7.0

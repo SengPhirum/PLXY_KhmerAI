@@ -1,0 +1,33 @@
+# GPU training stack - Google Colab (A100/L4/T4) or a Linux CUDA host.
+# NOT installed on the Mac Studio production node.
+#
+# Install torch first, matched to the CUDA runtime of the host, e.g.:
+#   pip install torch==2.13.0 --index-url https://download.pytorch.org/whl/cu124
+# then:
+#   pip install -r requirements/training.txt
+-r base.txt
+
+torch==2.13.0
+transformers==5.15.0
+peft==0.20.0
+trl==1.10.0
+accelerate==1.14.0
+datasets==5.0.1
+huggingface-hub==1.27.0
+safetensors==0.8.0
+sentencepiece==0.2.2
+tokenizers>=0.21,<1.0
+evaluate==0.4.6
+scipy==1.18.0
+scikit-learn==1.9.0
+pandas==3.0.5
+pyarrow==25.0.1
+tqdm==4.70.0
+datasketch==2.0.0             # MinHash/LSH near-duplicate detection
+xxhash==4.0.0                 # fast non-crypto hashing for dedup
+
+# 4-bit QLoRA (CUDA only - not available on Apple Silicon)
+bitsandbytes==0.50.1
+
+# Optional experiment tracking; keep WANDB_MODE=offline unless approved.
+# wandb==0.19.11

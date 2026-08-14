@@ -1,0 +1,279 @@
+# =============================================================================
+# configs/base.yaml - platform-wide defaults (Phase 0)
+# -----------------------------------------------------------------------------
+# Every other config file in configs/ starts with `extends:` pointing here and
+# overrides only what differs.  Values marked TARGET are requirements; values
+# marked MEASURED are filled in from real benchmark runs and must never be
+# invented (see docs/release_checklist.md).
+# =============================================================================
+
+project:
+  name: khmer-support-llm
+  owner: "PLXY / KDSB Engineering"
+  description: "Khmer-first, RAG-grounded customer-support assistant on on-premise Ollama"
+  python: "3.11"
+  seed: 20260814
+
+# -----------------------------------------------------------------------------
+# §37 Release versioning - each artefact versions independently.
+# knowledge_index is overridden at runtime from data/index/ACTIVE.
+# -----------------------------------------------------------------------------
+versions:
+  app: "1.0.0"
+  prompt: "1.0"
+  model: "khmer-support-qwen35-9b-sft-v1"
+  adapter: "sft-9b-lora-r32-v1"
+  dataset: "sft-2026-08-v1"
+  knowledge_index: "unset"
+
+# -----------------------------------------------------------------------------
+# Language policy
+# -----------------------------------------------------------------------------
+language:
+  primary: km                      # Khmer is always the default answer language
+  supported: [km, en]
+  code_switching: true             # Khmer + English in one message must work
+  reply_in_user_language_when:     # the only cases where English is allowed
+    - user_writes_only_english
+    - user_explicitly_requests_english
+  preserve_verbatim:               # never translate or reformat these
+    - product_names
+    - model_numbers
+    - sku
+    - urls
+    - email_addresses
+    - phone_numbers
+    - currency_amounts
+    - dates
+    - measurement_units
+
+# -----------------------------------------------------------------------------
+# Model candidates (Phase 5 selects between them with measured data)
+# -----------------------------------------------------------------------------
+models:
+  candidates:
+    - id: qwen35-4b
+      config: configs/models/qwen35_4b.yaml
+      role: high_concurrency
+    - id: qwen35-9b
+      config: configs/models/qwen35_9b.yaml
+      role: primary_quality
+  selected: qwen35-9b              # revisit after Phase 13; see docs/evaluation.md
+  fallback: qwen35-4b              # served when the primary is saturated or down
+
+# -----------------------------------------------------------------------------
+# Service level objectives.  TARGETs come from the business requirement;
+# the ACCEPTED column in reports/final_load_test.md is what was measured.
+# -----------------------------------------------------------------------------
+slo:
+  concurrency:
+    connected_clients_target: 10   # TARGET: 10+ simultaneously connected users
+    connected_clients_stretch: 20  # must degrade gracefully, not fail
+    max_active_generations: 4      # TARGET starting point; tune in Phase 13
+    max_queue_depth: 64
+    queue_timeout_seconds: 20
+  latency:
+    time_to_first_token_p95_seconds: 2.5     # TARGET
+    end_to_end_p95_seconds: 12.0             # TARGET for a RAG answer
+    end_to_end_p99_seconds: 20.0             # TARGET
+    retrieval_p95_seconds: 0.8               # TARGET
+  availability:
+    api_success_rate: 0.995        # TARGET over a rolling 24h window
+    max_5xx_rate: 0.005
+  quality_gates:                   # enforced by scripts/evaluate_all.sh
+    khmer_naturalness_min: 4.0     # human rubric, 1-5
+    support_accuracy_min: 0.85
+    grounding_precision_min: 0.90
+    hallucination_rate_max: 0.03
+    unsupported_claim_rate_max: 0.02
+    retrieval_recall_at_5_min: 0.85
+    prompt_injection_block_rate_min: 0.95
+
+# -----------------------------------------------------------------------------
+# Context / generation budget
+# -----------------------------------------------------------------------------
+context:
+  model_context_tokens: 8192       # OLLAMA_CONTEXT_LENGTH must match
+  reserved_for_system_prompt: 900
+  reserved_for_retrieved_context: 3200
+  reserved_for_conversation: 1600
+  reserved_for_output: 768
+  safety_margin: 300
+  max_user_message_chars: 4000
+
+generation:
+  temperature: 0.3                 # support answers, not creative writing
+  top_p: 0.9
+  top_k: 40
+  repeat_penalty: 1.05
+  max_output_tokens: 768
+  stop: []
+
+# -----------------------------------------------------------------------------
+# Hardware profile - the production target
+# -----------------------------------------------------------------------------
+hardware:
+  production:
+    machine: "Mac Studio (Apple M4-class)"
+    cpu_cores: 16
+    gpu_cores: 40
+    unified_memory_gb: 48
+    os: macOS
+    accelerator: metal
+    reserve_memory_gb: 8           # leave headroom for the OS + API + index
+  training:
+    provider: "Google Colab"
+    accelerators: ["T4 16GB", "L4 24GB", "A100 40GB", "A100 80GB"]
+    note: "No confidential company data leaves the premises without written approval (§35)."
+
+# -----------------------------------------------------------------------------
+# RAG requirements (details in configs/rag/*.yaml)
+# -----------------------------------------------------------------------------
+rag:
+  enabled: true
+  required_for_intents:
+    [pricing, specification, availability, warranty, returns, refund, policy, product_info, service_info]
+  min_confidence_to_answer: 0.35   # below this the assistant must express uncertainty
+  max_chunks_in_context: 6
+  default_document_status: active  # expired/draft/archived excluded unless asked for
+  conflict_policy: expose          # never silently pick one of two conflicting docs
+
+# -----------------------------------------------------------------------------
+# Privacy & retention (§35, Phase 15)
+# -----------------------------------------------------------------------------
+privacy:
+  deployment: on_premise
+  persist_conversations: false
+  conversation_ttl_seconds: 3600
+  anonymise_logs: true
+  log_user_message: false          # only lengths + hashes are logged by default
+  log_retrieved_text: false
+  pii_redaction: true
+  cloud_training_requires_approval: true
+
+# -----------------------------------------------------------------------------
+# Logging / metrics / backup policy (Phase 19, 22)
+# -----------------------------------------------------------------------------
+observability:
+  log_format: json
+  log_level: INFO
+  request_id_header: X-Request-ID
+  metrics_enabled: true
+  metrics_path: /metrics
+  metrics:
+    - requests_total
+    - requests_active
+    - requests_queued
+    - request_latency_seconds
+    - time_to_first_token_seconds
+    - generated_tokens_total
+    - retrieval_latency_seconds
+    - retrieval_empty_total
+    - ollama_errors_total
+    - api_errors_total
+    - escalations_total
+    - unknown_answers_total
+    - rate_limit_total
+
+backup:
+  targets:
+    - data/index
+    - data/manifests
+    - configs
+    - prompts
+    - reports
+    - evaluation/golden
+    - deployment
+  retention_days: 30
+  encrypt: true
+  schedule: "0 2 * * *"            # 02:00 local, via launchd
+  restore_doc: docs/operations_runbook.md#restore
+
+# -----------------------------------------------------------------------------
+# Company knowledge update process (Phase 21)
+# -----------------------------------------------------------------------------
+knowledge_update:
+  workflow: [validate, normalise, chunk, embed, build_new_index, regression_test, activate]
+  atomic_swap: true
+  keep_previous_versions: 3
+  regression_gate: evaluation/golden/customer_support.jsonl
+  requires_approval_for: [pricing, warranty, policy, refund]
+
+# -----------------------------------------------------------------------------
+# Dataset governance (Phase 2, §34)
+# -----------------------------------------------------------------------------
+datasets:
+  root: data
+  public_sources:
+    - name: fineweb2_khmer
+      hf_id: HuggingFaceFW/fineweb-2
+      subset: khm_Khmr
+      split: train
+      intended_use: continued_pretraining
+      commercial_review_status: review_required
+    - name: khmer_wikipedia
+      hf_id: wikimedia/wikipedia
+      subset: 20231101.km
+      split: train
+      intended_use: continued_pretraining
+      commercial_review_status: approved
+    - name: culturax_khmer
+      hf_id: uonlp/CulturaX
+      subset: km
+      split: train
+      intended_use: continued_pretraining
+      commercial_review_status: review_required
+    - name: aya_collection_khmer
+      hf_id: CohereForAI/aya_collection_language_split
+      subset: khmer
+      split: train
+      intended_use: instruction_tuning
+      commercial_review_status: review_required
+    - name: khmer_question_answer
+      hf_id: kimleang123/khmer_question_answer
+      subset: default
+      split: train
+      intended_use: instruction_tuning
+      commercial_review_status: review_required
+    - name: opus100_en_km
+      hf_id: Helsinki-NLP/opus-100
+      subset: en-km
+      split: train
+      intended_use: code_switching
+      commercial_review_status: review_required
+  evaluation_sources:               # NEVER used for training (§2 leakage rule)
+    - name: belebele_khmer
+      hf_id: facebook/belebele
+      subset: khm_Khmr
+      split: test
+      intended_use: evaluation_only
+      commercial_review_status: evaluation_only
+    - name: flores_plus_khmer
+      hf_id: openlanguagedata/flores_plus
+      subset: khm_Khmr
+      split: devtest
+      intended_use: evaluation_only
+      commercial_review_status: evaluation_only
+
+# -----------------------------------------------------------------------------
+# Prompts
+# -----------------------------------------------------------------------------
+prompts:
+  system_km: prompts/system_km.md
+  system_en: prompts/system_en.md
+  rag_answer: prompts/rag_answer.md
+  escalation: prompts/escalation.md
+  retrieved_context_open: "<retrieved_company_context>"
+  retrieved_context_close: "</retrieved_company_context>"
+
+# -----------------------------------------------------------------------------
+# Escalation / support desk
+# -----------------------------------------------------------------------------
+support:
+  company_display_name: "ក្រុមហ៊ុនរបស់យើង"       # override per deployment
+  escalation_channels:
+    - type: hotline
+      value: "${KHMERAI_SUPPORT_HOTLINE:-}"
+    - type: email
+      value: "${KHMERAI_SUPPORT_EMAIL:-}"
+  business_hours: "${KHMERAI_BUSINESS_HOURS:-ច័ន្ទ-សៅរ៍ ៨:០០-១៧:០០}"

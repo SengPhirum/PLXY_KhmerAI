@@ -1,0 +1,34 @@
+Copyright (c) 2026 PLXY / KDSB
+
+All rights reserved.
+
+This software and the accompanying documentation are the confidential and
+proprietary property of the copyright holder. They are provided for internal
+use within the organisation only.
+
+Permission is NOT granted to copy, modify, distribute, sublicense or publish
+this software outside the organisation without prior written permission from
+the copyright holder.
+
+THIRD-PARTY COMPONENTS
+----------------------
+This project depends on third-party open-source software and third-party
+datasets and models. Each of those components remains subject to its own
+licence. In particular:
+
+  * Base language models (for example the Qwen family) are governed by their
+    respective model licences. Review the model card before commercial use.
+  * Public Khmer corpora ingested through `datasets/download_public.py` carry
+    per-dataset licences. The generated report at
+    `data/manifests/license_report.csv` and `docs/dataset_provenance.md`
+    record the licence and the commercial-review status of every source.
+  * Python dependencies are listed in `requirements/`. Their licences apply as
+    published by their respective authors.
+
+No dataset flagged `prohibited_for_commercial` or `review_required` may be used
+for production training until legal review has recorded an approval decision in
+the manifest.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.

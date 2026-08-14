@@ -1,0 +1,165 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "khmer-support-llm"
+version = "1.0.0"
+description = "Khmer-first, RAG-grounded customer-support LLM platform for on-premise Ollama deployment"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = { file = "LICENSE" }
+authors = [{ name = "PLXY / KDSB Engineering" }]
+keywords = ["khmer", "llm", "rag", "customer-support", "ollama", "qwen"]
+classifiers = [
+  "Private :: Do Not Upload",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+  "pydantic==2.13.4",
+  "pydantic-settings==2.15.0",
+  "PyYAML==6.0.3",
+  "python-dotenv==1.2.2",
+  "numpy==2.5.2",
+  "httpx==0.28.1",
+]
+
+[project.optional-dependencies]
+server = [
+  "fastapi==0.141.1",
+  "uvicorn[standard]==0.52.3",
+  "sse-starlette==3.4.8",
+  "prometheus-client==0.26.0",
+  "python-multipart==0.0.32",
+]
+rag = [
+  "qdrant-client==1.19.0",
+  "pypdf==6.16.0",
+  "python-docx==1.2.0",
+  "beautifulsoup4==4.15.0",
+  "lxml==6.1.1",
+  "openpyxl==3.1.5",
+]
+dev = [
+  "pytest==9.1.1",
+  "pytest-asyncio==1.4.0",
+  "pytest-cov==7.1.0",
+  "ruff==0.16.3",
+  "mypy==2.3.0",
+  "types-PyYAML==6.0.12.20260724",
+]
+
+[project.scripts]
+khmerai-doctor = "scripts.doctor:main"
+
+[tool.setuptools]
+# The repository is a multi-package application, not a distributable library.
+# Only the importable application packages are declared here.
+packages = [
+  "common",
+  "preprocessing",
+  "company_data",
+  "company_data.loaders",
+  "rag",
+  "server",
+  "security",
+  "evaluation",
+  "training",
+]
+
+# -----------------------------------------------------------------------------
+# Ruff - formatting + linting
+# -----------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [".venv", "data", "training/colab", "reports", "evaluation/reports"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "RUF", "S", "T20", "PTH"]
+ignore = [
+  "E501",   # line length is handled by the formatter
+  "S101",   # asserts are used in tests
+  "N818",   # exception naming convention conflicts with domain names
+  "RUF001", # ambiguous unicode: Khmer text is intentional
+  "RUF002",
+  "RUF003",
+  "B008",   # FastAPI Depends() in defaults is idiomatic
+  "SIM105", # contextlib.suppress is not always clearer
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S", "T20", "PTH"]
+"tests/**" = ["S", "T20", "PTH"]
+"scripts/**" = ["T20", "S603", "S607"]
+"datasets/**" = ["T20"]
+"synthetic_data/**" = ["T20", "S311"]
+"evaluation/**" = ["T20"]
+"load_test/**" = ["T20", "S311"]
+"training/**" = ["T20"]
+"preprocessing/**" = ["S324"]  # non-crypto hashes are deliberate for dedup
+"common/hashing.py" = ["S324"]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+  "common", "preprocessing", "company_data", "rag", "server",
+  "security", "evaluation", "training", "synthetic_data",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# -----------------------------------------------------------------------------
+# mypy
+# -----------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = false
+no_implicit_optional = true
+check_untyped_defs = true
+ignore_missing_imports = true
+exclude = "(^\\.venv/|^data/|^training/colab/|^reports/)"
+
+[[tool.mypy.overrides]]
+module = ["tests.*", "*.tests.*"]
+ignore_errors = true
+
+# -----------------------------------------------------------------------------
+# pytest
+# -----------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = [
+  "preprocessing/tests",
+  "company_data/tests",
+  "rag/tests",
+  "server/tests",
+  "security/tests",
+  "training/tests",
+  "tests",
+]
+python_files = ["test_*.py"]
+addopts = "-q --strict-markers --strict-config"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+  "integration: exercises more than one subsystem (still hermetic)",
+  "e2e: full request path through the FastAPI app with a fake Ollama",
+  "slow: takes more than a few seconds",
+  "requires_ollama: needs a running Ollama daemon (skipped by default)",
+  "requires_gpu: needs a CUDA GPU (skipped by default)",
+  "requires_network: downloads from the internet (skipped by default)",
+]
+filterwarnings = ["error::DeprecationWarning:khmer_support.*"]
+
+[tool.coverage.run]
+branch = true
+omit = ["*/tests/*", "*/.venv/*", "training/colab/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
